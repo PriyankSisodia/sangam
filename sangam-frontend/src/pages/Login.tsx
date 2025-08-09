@@ -1,14 +1,9 @@
-// src/pages/Login.tsx
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 
-console.log("✅ Login.tsx loaded");
-
 const Login: React.FC = () => {
-  console.log("Login component mounted");
-
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | string[]>("");
 
@@ -16,26 +11,20 @@ const Login: React.FC = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMsg(""); // clear previous errors
-
-    console.log("Login payload:", { username: email, password });
+    setErrorMsg("");
 
     try {
       const response = await axios.post("http://localhost:8000/login", {
-          username: email,
-          password: password,
-        });
+        username: username,
+        password: password,
+      });
 
-      // Store token and navigate
       localStorage.setItem("token", response.data.access_token);
       navigate("/dashboard");
     } catch (err: any) {
       console.error("Login error:", err);
-
       const detail = err?.response?.data?.detail;
-
       if (Array.isArray(detail)) {
-        // FastAPI validation errors
         const messages = detail.map((d: any) => d.msg);
         setErrorMsg(messages);
       } else if (typeof detail === "string") {
@@ -51,10 +40,10 @@ const Login: React.FC = () => {
       <h2>Login</h2>
       <form style={styles.form} onSubmit={handleLogin}>
         <input
-          type="text"
-          placeholder="username"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          type="email"
+          placeholder="Email"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
           style={styles.input}
           required
         />
@@ -67,8 +56,6 @@ const Login: React.FC = () => {
           required
         />
         <button type="submit" style={styles.button}>Login</button>
-
-        {/* Error display */}
         {Array.isArray(errorMsg) ? (
           errorMsg.map((msg, idx) => (
             <p key={idx} style={styles.error}>{msg}</p>
@@ -77,7 +64,6 @@ const Login: React.FC = () => {
           errorMsg && <p style={styles.error}>{errorMsg}</p>
         )}
       </form>
-
       <p>
         Don’t have an account? <Link to="/signup">Sign up here</Link>
       </p>

@@ -1,36 +1,37 @@
-from fastapi import APIRouter, HTTPException
-from auth.schemas import User, LoginRequest
-from auth.utils import pwd_context, create_access_token, users_db
+# auth/routes.py
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
+from db import get_db
+from auth.utils import get_current_user
 
-router = APIRouter()
+from models import User
+from auth import schemas, utils
 
-fake_users = {
-    "priyank@gmail.com": "Sangam@Secure2025",
-    "test@example.com": "password",
-}
+router = APIRouter(tags=["auth"])
 
-@router.post("/signup")
-def signup(user: User):
-    if user.username in users_db:
+@router.get("/users/me")
+def read_users_me(current_user: dict = Depends(get_current_user)):
+    return current_user
+
+@router.post("/signup", response_model=schemas.UserOut)
+def signup(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
+    existing = db.query(User).filter(User.username == user_in.username).first()
+    if existing:
         raise HTTPException(status_code=400, detail="User already exists")
-    hashed = pwd_context.hash(user.password)
-    users_db[user.username] = hashed
-    return {"message": "User created successfully"}
+    hashed = utils.get_password_hash(user_in.password)
+    user = User(username=user_in.username, hashed_password=hashed)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
 
+@router.post("/login", response_model=schemas.Token)
+def login(req: schemas.LoginRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == req.username).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="Email not registered!")
+    if not utils.verify_password(req.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Wrong Password!")
 
-@router.post("/login")
-def login(payload: LoginRequest):
-    if payload.username in fake_users and fake_users[payload.username] == payload.password:
-        return {
-            "message": "Login successful",
-            "access_token": "fake-jwt-token-for-demo"
-        }
-    if payload.username not in users_db:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-
-    hashed_pass = users_db[payload.username]
-    if not pwd_context.verify(payload.password, hashed_pass):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-
-    token = create_access_token(payload.username)
+    token = utils.create_access_token(subject=user.username)
     return {"access_token": token, "token_type": "bearer"}

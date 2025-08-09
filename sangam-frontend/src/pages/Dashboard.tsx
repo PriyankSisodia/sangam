@@ -1,6 +1,26 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import axiosInstance from "../api/axiosInstance";
 
 const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        await axiosInstance.get("/users/me"); // Protected route
+        setLoading(false);
+      } catch (error) {
+        localStorage.removeItem("token");
+        navigate("/login");
+      }
+    };
+    checkAuth();
+  }, [navigate]);
+
+  if (loading) return <p>Loading...</p>;
+
   return (
     <div style={styles.wrapper}>
       <div style={styles.card}>
@@ -21,49 +41,5 @@ const Dashboard: React.FC = () => {
   );
 };
 
-const styles: Record<string, React.CSSProperties> = {
-  wrapper: {
-    width: "100vw",
-    height: "100vh",
-    margin: 0,
-    padding: 0,
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    background: "linear-gradient(to right, #e0eafc, #cfdef3)",
-  },
-  card: {
-    width: "95%",
-    maxWidth: "1200px",
-    padding: "40px",
-    borderRadius: "20px",
-    backgroundColor: "#ffffff",
-    boxShadow: "0 12px 32px rgba(0, 0, 0, 0.15)",
-    textAlign: "center",
-  },
-  title: {
-    fontSize: "3rem",
-    marginBottom: "10px",
-  },
-  brand: {
-    color: "#007bff",
-  },
-  subtitle: {
-    fontSize: "1.5rem",
-    color: "#555",
-    marginBottom: "30px",
-  },
-  image: {
-    width: "100%",
-    height: "auto",
-    maxHeight: "400px",
-    objectFit: "contain",
-    marginBottom: "30px",
-  },
-  note: {
-    fontSize: "1.2rem",
-    color: "#333",
-  },
-};
 
 export default Dashboard;
