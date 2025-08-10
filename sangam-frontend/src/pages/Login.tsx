@@ -27,6 +27,8 @@ const Login: React.FC = () => {
     } catch (err: any) {
       console.error("Full error:", err);
       console.error("Error response data:", err?.response?.data);
+      setErrorMsg("Network error occurred. Please check server and CORS settings.");
+
 //       const detail = err?.response?.data?.detail;
 
       console.error("Login error:", err);
