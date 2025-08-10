@@ -8,7 +8,7 @@ const Login: React.FC = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | string[]>("");
-
+  const [isHovered, setIsHovered] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -50,7 +50,7 @@ const Login: React.FC = () => {
   return (
     <div style={styles.wrapper}>
       <div style={styles.container}>
-        <h2>Login</h2>
+        <h2 style={styles.title}>Welcome Back</h2>
         <form style={styles.form} onSubmit={handleLogin}>
           <input
             type="email"
@@ -68,7 +68,12 @@ const Login: React.FC = () => {
             style={styles.input}
             required
           />
-          <button type="submit" style={styles.button}>
+          <button
+            type="submit"
+            style={isHovered ? { ...styles.button, ...styles.buttonHover } : styles.button}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+          >
             Login
           </button>
           {Array.isArray(errorMsg) ? (
@@ -81,58 +86,95 @@ const Login: React.FC = () => {
             errorMsg && <p style={styles.error}>{errorMsg}</p>
           )}
         </form>
-        <p>
-          Don’t have an account? <Link to="/signup">Sign up here</Link>
+        <p style={styles.signupText}>
+          Don’t have an account?{" "}
+          <Link to="/signup" style={styles.signupLink}>
+            Sign up here
+          </Link>
         </p>
       </div>
     </div>
   );
 };
 
-const styles = {
+const styles: { [key: string]: React.CSSProperties } = {
   wrapper: {
     minHeight: "100vh",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    background: "#262626", // optional, for app background
-    width: "100vw",
+    fontFamily: "'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif",
+    background: "linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)",
   },
   container: {
-    width: "100%", // fill parent
-    maxWidth: "400px",
-    background: "#222", // optional, for card background
+    width: "100%",
+    maxWidth: "420px",
+    padding: "40px 30px",
     textAlign: "center",
-    padding: "30px",
-    border: "1px solid #444",
-    borderRadius: "8px",
-    boxShadow: "0 2px 12px rgba(0,0,0,0.10)",
+    background: "rgba(0, 0, 0, 0.2)",
+    borderRadius: "16px",
+    boxShadow: "0 8px 32px rgba(0, 0, 0, 0.37)",
+    backdropFilter: "blur(10px)",
+    WebkitBackdropFilter: "blur(10px)",
+    border: "1px solid rgba(255, 255, 255, 0.1)",
+    color: "#e0e0e0",
+  },
+  title: {
+    fontSize: "2.5rem",
+    fontWeight: 700,
+    color: "white",
+    marginBottom: "1rem",
   },
   form: {
     display: "flex",
     flexDirection: "column",
-    gap: "12px",
+    gap: "1rem",
+    marginTop: "2rem",
   },
   input: {
-    padding: "10px",
-    fontSize: "16px",
-    borderRadius: "4px",
-    border: "1px solid #333",
-    background: "#333",
+    padding: "15px",
+    fontSize: "1rem",
     color: "white",
+    background: "rgba(255, 255, 255, 0.1)",
+    border: "1px solid rgba(255, 255, 255, 0.2)",
+    borderRadius: "8px",
+    outline: "none",
+    transition: "border-color 0.3s, box-shadow 0.3s",
   },
   button: {
-    padding: "10px",
-    fontSize: "16px",
-    backgroundColor: "#007bff",
+    padding: "15px",
+    fontSize: "1.1rem",
+    fontWeight: "bold",
     color: "white",
+    background: "linear-gradient(90deg, #007bff, #0056b3)",
     border: "none",
-    borderRadius: "4px",
+    borderRadius: "8px",
     cursor: "pointer",
+    transition: "transform 0.2s, box-shadow 0.2s",
+    marginTop: "1rem",
+  },
+  buttonHover: {
+    transform: "translateY(-2px)",
+    boxShadow: "0 4px 20px rgba(0, 123, 255, 0.4)",
   },
   error: {
-    color: "red",
+    color: "#ff4d4d",
+    background: "rgba(255, 77, 77, 0.1)",
+    border: "1px solid rgba(255, 77, 77, 0.2)",
+    padding: "10px",
+    borderRadius: "8px",
     marginTop: "10px",
+    fontSize: "0.9rem",
+  },
+  signupText: {
+    marginTop: "2rem",
+    fontSize: "0.9rem",
+    color: "#c0c0c0",
+  },
+  signupLink: {
+    color: "#00aaff",
+    fontWeight: 600,
+    textDecoration: "none",
   },
 };
 
