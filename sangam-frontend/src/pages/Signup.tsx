@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-
+// const API_BASE_URL = "http://localhost:8000"
 const Signup: React.FC = () => {
   const [businessName, setBusinessName] = useState("");
   const [email, setEmail] = useState("");
@@ -41,51 +41,61 @@ const Signup: React.FC = () => {
   };
 
   return (
-    <div style={styles.container}>
-      <h2>Sign Up</h2>
-      <form style={styles.form} onSubmit={handleSignup}>
-        <input
-          type="text"
-          placeholder="Business Name"
-          value={businessName}
-          onChange={(e) => setBusinessName(e.target.value)}
-          style={styles.input}
-          required
-        />
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={styles.input}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={styles.input}
-          required
-        />
-        <button type="submit" style={styles.button}>Sign Up</button>
+      <div style={styles.wrapper}>
+        <div style={styles.container}>
+          <h2>Sign Up</h2>
+          <form style={styles.form} onSubmit={handleSignup}>
+            <input
+              type="text"
+              placeholder="Business Name"
+              value={businessName}
+              onChange={(e) => setBusinessName(e.target.value)}
+              style={styles.input}
+              required
+            />
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={styles.input}
+              required
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={styles.input}
+              required
+            />
+            <button type="submit" style={styles.button}>Sign Up</button>
 
-        {Array.isArray(errorMsg) ? (
-          errorMsg.map((msg, idx) => (
-            <p key={idx} style={styles.error}>{msg}</p>
-          ))
-        ) : (
-          errorMsg && <p style={styles.error}>{errorMsg}</p>
-        )}
-      </form>
-      <p>
-        Already have an account? <Link to="/">Login</Link>
-      </p>
-    </div>
+            {Array.isArray(errorMsg) ? (
+              errorMsg.map((msg, idx) => (
+                <p key={idx} style={styles.error}>{msg}</p>
+              ))
+            ) : (
+              errorMsg && <p style={styles.error}>{errorMsg}</p>
+            )}
+          </form>
+          <p>
+            Already have an account? <Link to="/">Login</Link>
+          </p>
+        </div>
+      </div>
   );
 };
 
 const styles: Record<string, React.CSSProperties> = {
+  wrapper: {
+    minHeight: "100vh",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    background: "#262626", // optional, for app background
+    width: "100vw",
+  },
   container: {
     maxWidth: "400px",
     margin: "80px auto",

@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
-
+// const API_BASE_URL = "http://localhost:8000"
 const Login: React.FC = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -25,15 +25,22 @@ const Login: React.FC = () => {
       localStorage.setItem("token", response.data.access_token);
       navigate("/dashboard");
     } catch (err: any) {
+      console.error("Full error:", err);
+      console.error("Error response data:", err?.response?.data);
+//       const detail = err?.response?.data?.detail;
+
       console.error("Login error:", err);
       const detail = err?.response?.data?.detail;
       if (Array.isArray(detail)) {
         const messages = detail.map((d: any) => d.msg);
         setErrorMsg(messages);
+      } else if (typeof detail === "object" && detail !== null) {
+        // For cases where detail is an object, e.g. { error: "XYZ" }
+        setErrorMsg(JSON.stringify(detail));
       } else if (typeof detail === "string") {
         setErrorMsg(detail);
       } else {
-        setErrorMsg("Login failed. Please try again.");
+        setErrorMsg("FallBack! Error");
       }
     }
   };
