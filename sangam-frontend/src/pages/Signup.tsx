@@ -15,7 +15,8 @@ const Signup: React.FC = () => {
     setErrorMsg("");
 
     try {
-      const response = await axios.post("http://localhost:8000/signup", {
+      const response = await axios.post(`${API_BASE_URL}/signup`, {
+//       const response = await axios.post("http://localhost:8000/signup", {
         business_name: businessName,
         username: email, // backend expects 'username' if following FastAPI OAuth2
         password: password,
