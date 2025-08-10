@@ -9,6 +9,7 @@ const Signup: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | string[]>("");
+  const [successMsg, setSuccessMsg] = useState("");
 
   const navigate = useNavigate();
 
@@ -23,7 +24,8 @@ const Signup: React.FC = () => {
         username: email, // backend expects 'username' if following FastAPI OAuth2
         password: password,
       });
-
+      // ✅ Set green message
+      setSuccessMsg("Registered successfully! You can now log in.");
       console.log("Signup successful:", response.data);
 
       // Redirect to login after successful signup
@@ -126,6 +128,10 @@ const styles: Record<string, React.CSSProperties> = {
   },
   error: {
     color: "red",
+    marginTop: "10px",
+  },
+  success: {
+    color: "limegreen", // ✅ green text
     marginTop: "10px",
   },
 };
