@@ -18,11 +18,16 @@ def on_startup():
 # CORS (allow dev frontend)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000","https://sangam-v2.vercel.app/"],  # adjust if needed
+    allow_origins=["http://localhost:5173", "http://localhost:3000","https://sangam-v2.vercel.app"],  # adjust if needed
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/")
+def root():
+    return {"msg": "hello"}
+
 app.include_router(auth_router)
 
 @app.get("/users/me")
