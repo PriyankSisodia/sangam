@@ -12,6 +12,7 @@ const Dashboard: React.FC = () => {
         await axiosInstance.get("/users/me"); // Protected route
         setLoading(false);
       } catch (error) {
+        console.error("Auth check failed:", error);
         localStorage.removeItem("token");
         navigate("/login");
       }
@@ -41,5 +42,50 @@ const Dashboard: React.FC = () => {
   );
 };
 
+// Add this at the top or bottom of your Dashboard.tsx
+const styles = {
+  wrapper: {
+    minHeight: "100vh",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    background: "#262626",
+    width: "100vw",
+  },
+  card: {
+    width: "100%",
+    maxWidth: "400px",
+    background: "#222",
+    textAlign: "center",
+    padding: "30px",
+    border: "1px solid #444",
+    borderRadius: "8px",
+    boxShadow: "0 2px 12px rgba(0,0,0,0.10)",
+    color: "white",
+  },
+  title: {
+    fontSize: "2rem",
+    marginBottom: "10px",
+  },
+  brand: {
+    color: "#007bff",
+    fontWeight: "bold",
+  },
+  subtitle: {
+    fontSize: "1.2rem",
+    marginBottom: "10px",
+  },
+  image: {
+    width: "100%",
+    maxHeight: "180px",
+    objectFit: "cover",
+    borderRadius: "6px",
+    margin: "16px 0",
+  },
+  note: {
+    fontStyle: "italic",
+    marginTop: "16px",
+  },
+};
 
 export default Dashboard;

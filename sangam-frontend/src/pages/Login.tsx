@@ -36,49 +36,65 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div style={styles.container}>
-      <h2>Login</h2>
-      <form style={styles.form} onSubmit={handleLogin}>
-        <input
-          type="email"
-          placeholder="Email"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          style={styles.input}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={styles.input}
-          required
-        />
-        <button type="submit" style={styles.button}>Login</button>
-        {Array.isArray(errorMsg) ? (
-          errorMsg.map((msg, idx) => (
-            <p key={idx} style={styles.error}>{msg}</p>
-          ))
-        ) : (
-          errorMsg && <p style={styles.error}>{errorMsg}</p>
-        )}
-      </form>
-      <p>
-        Don’t have an account? <Link to="/signup">Sign up here</Link>
-      </p>
+    <div style={styles.wrapper}>
+      <div style={styles.container}>
+        <h2>Login</h2>
+        <form style={styles.form} onSubmit={handleLogin}>
+          <input
+            type="email"
+            placeholder="Email"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            style={styles.input}
+            required
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            style={styles.input}
+            required
+          />
+          <button type="submit" style={styles.button}>
+            Login
+          </button>
+          {Array.isArray(errorMsg) ? (
+            errorMsg.map((msg, idx) => (
+              <p key={idx} style={styles.error}>
+                {msg}
+              </p>
+            ))
+          ) : (
+            errorMsg && <p style={styles.error}>{errorMsg}</p>
+          )}
+        </form>
+        <p>
+          Don’t have an account? <Link to="/signup">Sign up here</Link>
+        </p>
+      </div>
     </div>
   );
 };
 
-const styles: Record<string, React.CSSProperties> = {
+const styles = {
+  wrapper: {
+    minHeight: "100vh",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    background: "#262626", // optional, for app background
+    width: "100vw",
+  },
   container: {
+    width: "100%", // fill parent
     maxWidth: "400px",
-    margin: "80px auto",
+    background: "#222", // optional, for card background
     textAlign: "center",
     padding: "30px",
-    border: "1px solid #ddd",
+    border: "1px solid #444",
     borderRadius: "8px",
+    boxShadow: "0 2px 12px rgba(0,0,0,0.10)",
   },
   form: {
     display: "flex",
@@ -88,6 +104,10 @@ const styles: Record<string, React.CSSProperties> = {
   input: {
     padding: "10px",
     fontSize: "16px",
+    borderRadius: "4px",
+    border: "1px solid #333",
+    background: "#333",
+    color: "white",
   },
   button: {
     padding: "10px",
