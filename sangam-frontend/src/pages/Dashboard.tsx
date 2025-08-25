@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -9,7 +11,8 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        await axiosInstance.get("/users/me"); // Protected route
+//         await axiosInstance.get("/users/me"); // Protected route
+        await axiosInstance.get(`${API_BASE_URL}/users/me`);
         setLoading(false);
       } catch (error) {
         console.error("Auth check failed:", error);
