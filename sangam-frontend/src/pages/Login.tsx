@@ -5,6 +5,8 @@ import axios from "axios";
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 // const API_BASE_URL = "http://localhost:8000"
 const Login: React.FC = () => {
+
+  // usestate means default text
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | string[]>("");
@@ -12,8 +14,8 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg("");
+    e.preventDefault(); // to avoid full reload the html page
+    setErrorMsg("");   //clear old error messg before new
 
     try {
       const response = await axios.post(`${API_BASE_URL}/login`, {
@@ -22,11 +24,12 @@ const Login: React.FC = () => {
         password: password,
       });
 
+        //store this token in the browser's localStorage to keep the user logged in for future
       localStorage.setItem("token", response.data.access_token);
-      navigate("/dashboard");
+      navigate("/dashboard2");
     } catch (err: any) {
-      console.error("Full error:", err);
-      console.error("Error response data:", err?.response?.data);
+      console.error("Priyank Full error here:", err);
+      console.error("Priyank Error response data here:", err?.response?.data);
       setErrorMsg("Network error occurred. Please check server and CORS settings.");
 
 //       const detail = err?.response?.data?.detail;
