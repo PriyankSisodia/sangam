@@ -1,6 +1,7 @@
 // src/components/Dashboard2.tsx
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import OrdersDashboard from './OrdersDashboard';
 
 // ===================================================================================
 // --- 1. ICON COMPONENTS ---
@@ -637,7 +638,8 @@ const Dashboard2: React.FC = () => {
         case 'chats':
           return <ChatsComponent chats={chats} setChats={setChats} isMobile={isMobile} />;
         case 'orders':
-          return <div style={{textAlign: 'center', marginTop: 50}}>Orders Coming Soon</div>;
+          return <OrdersDashboard />;
+//           return <div style={{textAlign: 'center', marginTop: 50}}>Orders Coming Soon</div>;
         case 'graphs':
           return <div style={{textAlign: 'center', marginTop: 50}}>Graphs Coming Soon</div>;
         default:
