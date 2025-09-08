@@ -65,6 +65,8 @@ const OrdersDashboard: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [frozenColumns, setFrozenColumns] = useState<string[]>(['id']);
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
 
   const { isOpen: isFilterMenuOpen, setIsOpen: setFilterMenuOpen, ref: filterMenuRef } = useDropdown();
   const { isOpen: isFreezeMenuOpen, setIsOpen: setFreezeMenuOpen, ref: freezeMenuRef } = useDropdown();
@@ -72,13 +74,20 @@ const OrdersDashboard: React.FC = () => {
   const [activeFilterColumn, setActiveFilterColumn] = useState<keyof Order | null>(null);
   const [filterMenuPosition, setFilterMenuPosition] = useState<{ top: number; left: number } | null>(null);
 
-  const columnHeaders: { key: keyof Order; label: string, width: number }[] = [
+  const baseColumnHeaders: { key: keyof Order; label: string, width: number }[] = [
     { key: 'id', label: 'Order ID', width: 120 }, { key: 'trackingId', label: 'Tracking #', width: 180 }, { key: 'customerName', label: 'Customer', width: 150 },
     { key: 'customerContact', label: 'Contact', width: 120 }, { key: 'category', label: 'Category', width: 120 }, { key: 'product', label: 'Product', width: 200 },
     { key: 'amount', label: 'Amount', width: 100 }, { key: 'paymentMethod', label: 'Pay Method', width: 120 }, { key: 'paymentStatus', label: 'Pay Status', width: 120 },
     { key: 'paymentDate', label: 'Pay Date', width: 120 }, { key: 'deliveryStatus', label: 'Delivery', width: 120 }, { key: 'source', label: 'Source', width: 120 },
     { key: 'note', label: 'Note', width: 250 }, { key: 'rating', label: 'Rating', width: 100 },
   ];
+
+  // --- NEW: Reorder columns to show frozen first ---
+  const dynamicColumnHeaders = useMemo(() => {
+      const frozen = baseColumnHeaders.filter(c => frozenColumns.includes(c.key));
+      const nonFrozen = baseColumnHeaders.filter(c => !frozenColumns.includes(c.key));
+      return [...frozen, ...nonFrozen];
+  }, [frozenColumns]);
 
   const sortableColumns: (keyof Order)[] = ['id', 'customerName', 'customerContact', 'trackingId', 'product', 'amount', 'paymentDate'];
   const filterableColumns: Partial<Record<keyof Order, string[]>> = {
@@ -92,6 +101,18 @@ const OrdersDashboard: React.FC = () => {
 
   const filteredAndSortedOrders = useMemo(() => {
     let orders = [...initialOrders];
+
+    // --- NEW: Date Range Filter ---
+    if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        orders = orders.filter(order => {
+            if (!order.paymentDate) return false;
+            const orderDate = new Date(order.paymentDate);
+            return orderDate >= start && orderDate <= end;
+        });
+    }
+
     Object.entries(filters).forEach(([key, value]) => {
       if (value) orders = orders.filter(order => order[key as keyof Order]?.toString().toLowerCase().includes(value.toLowerCase()));
     });
@@ -109,7 +130,7 @@ const OrdersDashboard: React.FC = () => {
       });
     }
     return orders;
-  }, [filters, sortConfig, globalSearch]);
+  }, [filters, sortConfig, globalSearch, startDate, endDate]);
 
   const paginatedOrders = useMemo(() => {
       const startIndex = currentPage * rowsPerPage;
@@ -145,10 +166,9 @@ const OrdersDashboard: React.FC = () => {
   };
 
   const getStickyLeftOffset = (key: string): number => {
-    const orderedFrozenColumns = columnHeaders.map(h => h.key).filter(k => frozenColumns.includes(k));
-    const frozenIndex = orderedFrozenColumns.indexOf(key as keyof Order);
-    return orderedFrozenColumns.slice(0, frozenIndex)
-        .reduce((acc, currKey) => acc + (columnHeaders.find(h => h.key === currKey)?.width ?? 0), 0);
+    const frozenIndex = frozenColumns.indexOf(key);
+    return frozenColumns.slice(0, frozenIndex)
+        .reduce((acc, currKey) => acc + (baseColumnHeaders.find(h => h.key === currKey)?.width ?? 0), 0);
   };
 
   const styles: { [key: string]: React.CSSProperties } = {
@@ -156,6 +176,8 @@ const OrdersDashboard: React.FC = () => {
     toolbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
     dashboardTitle: { fontSize: '1.5rem', fontWeight: 600, color: '#111827' },
     controlsContainer: { display: 'flex', gap: '16px', alignItems: 'center' },
+    dateFilterContainer: { display: 'flex', gap: '8px', alignItems: 'center' },
+    dateInput: { padding: '8px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', color: '#1f2937' },
     rowsPerPageSelector: { padding: '8px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', backgroundColor: '#f9fafb', color: '#1f2937' },
     searchContainer: { position: 'relative', display: 'flex', alignItems: 'center' },
     searchInput: { padding: '8px 12px 8px 36px', border: 'none', backgroundColor: '#f3f4f6', borderRadius: '8px', width: '250px', fontSize: '0.9rem', outline: 'none', color: '#1f2937' },
@@ -179,9 +201,9 @@ const OrdersDashboard: React.FC = () => {
     activePageButton: { background: '#007bff', color: 'white', borderColor: '#007bff' },
     paginationInfo: { fontSize: '0.9rem', color: '#6c757d' },
     freezeColumnMenu: { position: 'relative' },
-    freezeButton: { padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '8px', background: '#f9fafb', cursor: 'pointer' },
+    freezeButton: { padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '8px', background: '#f9fafb', cursor: 'pointer', color: '#1f2937' },
     freezeDropdown: { position: 'absolute', top: '100%', right: 0, background: 'white', border: '1px solid #ddd', borderRadius: '8px', boxShadow: '0 5px 15px rgba(0,0,0,0.1)', zIndex: 20, marginTop: '5px', padding: '8px', maxHeight: '300px', overflowY: 'auto' },
-    freezeOption: { display: 'block', padding: '8px 12px', whiteSpace: 'nowrap' },
+    freezeOption: { display: 'block', padding: '8px 12px', whiteSpace: 'nowrap', color: '#1f2937' },
   };
 
   const getSortIndicator = (key: keyof Order) => {
@@ -195,11 +217,16 @@ const OrdersDashboard: React.FC = () => {
       <div style={styles.toolbar}>
           <h2 style={styles.dashboardTitle}>Orders Overview</h2>
           <div style={styles.controlsContainer}>
+            <div style={styles.dateFilterContainer}>
+                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={styles.dateInput} />
+                <span style={{color: '#6c757d'}}>-</span>
+                <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={styles.dateInput} />
+            </div>
             <div style={styles.freezeColumnMenu} ref={freezeMenuRef}>
                 <button style={styles.freezeButton} onClick={() => setFreezeMenuOpen(prev => !prev)}>Freeze Columns</button>
                 {isFreezeMenuOpen && (
                     <div style={styles.freezeDropdown}>
-                        {columnHeaders.map(({key, label}) => (
+                        {baseColumnHeaders.map(({key, label}) => (
                             <label key={key} style={styles.freezeOption}>
                                 <input type="checkbox" checked={frozenColumns.includes(key)} onChange={() => handleFreezeColumnChange(key)} disabled={!frozenColumns.includes(key) && frozenColumns.length >= 3} /> {label}
                             </label>
@@ -221,13 +248,13 @@ const OrdersDashboard: React.FC = () => {
       </div>
       <div style={styles.tableContainer}>
         <table style={styles.table}>
-            <thead><tr>{columnHeaders.map(({ key, label, width }) => {
+            <thead><tr>{dynamicColumnHeaders.map(({ key, label, width }) => {
                 const isFrozen = frozenColumns.includes(key);
                 const stickyStyles: React.CSSProperties = isFrozen ? { position: 'sticky', left: getStickyLeftOffset(key), zIndex: 3 } : {};
                 return (<th key={key} style={{...styles.th, width: `${width}px`, ...stickyStyles}}><div onClick={() => requestSort(key)} style={{...styles.thContent, ...(sortableColumns.includes(key) ? styles.thClickable : {})}}><span>{label}</span><span style={{color: '#007bff'}}>{getSortIndicator(key)}</span>{filterableColumns[key] && (<span onClick={(e) => handleFilterIconClick(e, key)} style={styles.filterIconWrapper}><ChevronDownIcon /></span>)}{filters[key] && (<span style={styles.activeFilterPill}>{filters[key]}<span style={styles.clearFilterIcon} onClick={(e) => { e.stopPropagation(); clearFilter(key); }}>×</span></span>)}</div></th>);
             })}</tr></thead>
             <tbody>
-            {paginatedOrders.map((order: Order) => (<tr key={order.id}>{columnHeaders.map(({ key }) => {
+            {paginatedOrders.map((order: Order) => (<tr key={order.id}>{dynamicColumnHeaders.map(({ key }) => {
                 const isFrozen = frozenColumns.includes(key);
                 const stickyStyles: React.CSSProperties = isFrozen ? { position: 'sticky', left: getStickyLeftOffset(key), zIndex: 1, backgroundColor: '#fff', borderRight: '1px solid #f1f1f1' } : {};
                 return (<td key={`${order.id}-${key}`} style={{...styles.td, ...stickyStyles}}>
@@ -251,7 +278,7 @@ const OrdersDashboard: React.FC = () => {
         </div>
       </div>
       {isFilterMenuOpen && activeFilterColumn && filterableColumns[activeFilterColumn] && (<div ref={filterMenuRef} style={{...styles.filterMenu, top: filterMenuPosition?.top, left: filterMenuPosition?.left}}>
-          {filterableColumns[activeFilterColumn]?.map(option => (<div key={option} style={styles.filterMenuItem} onMouseOver={e => e.currentTarget.style.backgroundColor = '#f3f4f6'} onMouseOut={e => e.currentTarget.style.backgroundColor = 'white'} onClick={() => { handleFilterChange(activeFilterColumn, option); setFilterMenuOpen(false); }}>{option}</div>))}
+          {filterableColumns[activeFilterColumn]?.map(option => (<div key={option} style={styles.filterMenuItem} onMouseOver={e => e.currentTarget.style.backgroundColor = '#f0f0f0'} onMouseOut={e => e.currentTarget.style.backgroundColor = 'white'} onClick={() => { handleFilterChange(activeFilterColumn, option); setFilterMenuOpen(false); }}>{option}</div>))}
       </div>)}
     </div>
   );
