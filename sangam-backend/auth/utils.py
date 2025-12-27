@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer, HTTPBearer
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -28,12 +28,16 @@ def create_access_token(subject: str, expires_minutes: int = ACCESS_TOKEN_EXPIRE
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
+# Use HTTPBearer for simple Bearer token authentication
+# This will show a simple "Value" field in Swagger UI instead of OAuth2 form
+bearer_scheme = HTTPBearer()
 
-def get_current_user(token: str = Depends(oauth2_scheme)):
+def get_current_user(token = Depends(bearer_scheme)):
     """
     Decodes the JWT token and returns the payload if valid,
     otherwise raises an HTTPException.
+    
+    Note: HTTPBearer returns a credentials object, so we access token via .credentials
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -42,7 +46,9 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     )
 
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        # HTTPBearer wraps the token, so we access it via .credentials
+        token_string = token.credentials
+        payload = jwt.decode(token_string, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception

@@ -5,6 +5,7 @@ export type DeliveryStatus = 'Pending' | 'Shipped' | 'Delivered' | 'Cancelled';
 export type Source = 'Instagram' | 'Facebook' | 'WhatsApp' | 'Website';
 export type PaymentStatus = 'Paid' | 'Unpaid';
 export type Category = 'Home Decor' | 'Art' | 'Furniture' | 'Textiles';
+export type ProcessStatus = 'production' | 'in_transit' | 'delay';
 
 export interface Order {
   id: string;
@@ -20,6 +21,7 @@ export interface Order {
   paymentDate: string | null;
   deliveryStatus: DeliveryStatus;
   source: Source;
+  processStatus?: ProcessStatus;
   note: string | null;
   rating: number | null;
 }

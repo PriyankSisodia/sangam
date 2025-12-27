@@ -1,6 +1,7 @@
 // src/components/CatalogDashboard.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { CatalogItem } from '../data/catalog';
+import { getCatalogItems, createCatalogItem, updateCatalogItem } from '../api/catalog';
 
 // --- Styling Objects ---
 const styles = {
@@ -143,21 +144,70 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ onClose, onAddItem }) => {
 
 
 // --- Main CatalogDashboard Component ---
-interface CatalogDashboardProps {
-  catalogItems: CatalogItem[];
-  setCatalogItems: React.Dispatch<React.SetStateAction<CatalogItem[]>>;
-}
-const CatalogDashboard: React.FC<CatalogDashboardProps> = ({ catalogItems, setCatalogItems }) => {
+const CatalogDashboard: React.FC = () => {
+    const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
+    const [loading, setLoading] = useState(true);
     const [isModalOpen, setModalOpen] = useState(false);
     const [gridColumns, setGridColumns] = useState(4);
 
-    const handleAddItem = (item: Omit<CatalogItem, 'id' | 'sold'>) => {
-        setCatalogItems(prev => [...prev, { ...item, id: prev.length > 0 ? Math.max(...prev.map(i => i.id)) + 1 : 1, sold: 0 }]);
+    // Fetch catalog items from API on component mount
+    useEffect(() => {
+        const fetchCatalog = async () => {
+            setLoading(true);
+            try {
+                const items = await getCatalogItems();
+                setCatalogItems(items);
+            } catch (error) {
+                console.error('Error fetching catalog:', error);
+                alert('Failed to load catalog. Please refresh the page.');
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchCatalog();
+    }, []);
+
+    const handleAddItem = async (item: Omit<CatalogItem, 'id' | 'sold'>) => {
+        try {
+            const newItem = await createCatalogItem({
+                name: item.name,
+                image_url: item.imageUrl,
+                price: item.price,
+                category: item.category,
+                stock: item.stock,
+                sold: 0
+            });
+            setCatalogItems(prev => [...prev, newItem]);
+        } catch (error) {
+            console.error('Error creating catalog item:', error);
+            alert('Failed to create catalog item. Please try again.');
+        }
     };
 
-    const handleUpdateItem = (updatedItem: CatalogItem) => {
-        setCatalogItems(prev => prev.map(item => item.id === updatedItem.id ? updatedItem : item));
+    const handleUpdateItem = async (updatedItem: CatalogItem) => {
+        try {
+            const updated = await updateCatalogItem(updatedItem.id, {
+                name: updatedItem.name,
+                image_url: updatedItem.imageUrl,
+                price: updatedItem.price,
+                category: updatedItem.category,
+                stock: updatedItem.stock,
+                sold: updatedItem.sold
+            });
+            setCatalogItems(prev => prev.map(item => item.id === updated.id ? updated : item));
+        } catch (error) {
+            console.error('Error updating catalog item:', error);
+            alert('Failed to update catalog item. Please try again.');
+        }
     };
+
+    if (loading) {
+        return (
+            <div style={styles.container}>
+                <div style={{ textAlign: 'center', padding: '50px', fontSize: '1.2rem', color: '#666' }}>Loading catalog...</div>
+            </div>
+        );
+    }
 
     return (
         <div style={styles.container}>
