@@ -35,10 +35,12 @@ interface Chat {
   id: number;
   name: string;
   lastMessage: string;
+  lastMessageSender?: 'me' | 'them';
+  lastMessageTime?: string;
   platform: Platform;
   date: string;
   status: ChatStatus;
-  messages: { text: string; sender: 'me' | 'them' }[];
+  messages: { text: string; sender: 'me' | 'them'; created_at?: string }[];
 }
 
 const getISODate = (daysAgo: number = 0): string => {
@@ -49,6 +51,10 @@ const getISODate = (daysAgo: number = 0): string => {
 
 // Helper function to transform backend Chat format to frontend Chat format
 const transformApiChatToFrontendChat = (apiChat: ApiChat): Chat => {
+  const lastMessage = apiChat.messages && apiChat.messages.length > 0 
+    ? apiChat.messages[apiChat.messages.length - 1] 
+    : null;
+  
   return {
     id: apiChat.id,
     name: apiChat.customer_name,
@@ -56,11 +62,35 @@ const transformApiChatToFrontendChat = (apiChat: ApiChat): Chat => {
     date: apiChat.last_message_date.split('T')[0], // Extract date part
     status: apiChat.status,
     lastMessage: apiChat.last_message || '',
+    lastMessageSender: lastMessage?.sender,
+    lastMessageTime: lastMessage?.created_at,
     messages: apiChat.messages.map(msg => ({
       text: msg.text,
-      sender: msg.sender
+      sender: msg.sender,
+      created_at: msg.created_at
     }))
   };
+};
+
+// Helper function to format message time
+const formatMessageTime = (dateString?: string): string => {
+  if (!dateString) return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  try {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
+    if (date.toDateString() === now.toDateString()) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
 };
 
 
@@ -85,37 +115,327 @@ const styles: { [key: string]: React.CSSProperties } = {
 };
 
 const chatStyles = {
-  container: (isMobile: boolean): React.CSSProperties => ({ display: 'flex', flexDirection: (isMobile ? 'column' : 'row') as React.CSSProperties['flexDirection'], height: '100%', background: '#ffffff', borderRadius: '12px', border: '1px solid #e0e0e0', boxShadow: '0 8px 30px rgba(0, 0, 0, 0.08)', overflow: 'hidden' }),
-  leftPanel: (isMobile: boolean): React.CSSProperties => ({ width: isMobile ? '100%' : '30%', maxWidth: isMobile ? 'none' : '480px', borderRight: isMobile ? 'none' : '1px solid #e0e0e0', borderBottom: isMobile ? '1px solid #e0e0e0' : 'none', display: 'flex', flexDirection: 'column' as const, flexShrink: 0 }),
-  chatWindow: { flex: 1, height: '100%', display: 'flex', flexDirection: 'column' as const },
-  chatListContainer: { flex: 1, overflowY: 'auto' as const },
-  chatBox: { padding: '12px 15px', borderBottom: '1px solid #eee', cursor: 'pointer', display: 'flex', alignItems: 'center', background: 'linear-gradient(to bottom, #ffffff, #f7f9fb)', transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out' },
-  activeChatBox: { background: 'linear-gradient(to bottom, #e8f4ff, #dce9f5)', transform: 'scale(1.02)', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', borderRadius: '8px', margin: '4px 0' },
-  chatIcon: { marginRight: 12, display: 'flex', alignItems: 'center' },
-  chatInfo: { flex: 1, overflow: 'hidden' },
-  chatName: { fontWeight: 'bold', fontSize: '0.95rem', color: '#333', marginBottom: '4px' },
-  lastMessage: { fontSize: '0.85rem', color: '#777', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  unreadDot: { width: 8, height: 8, background: '#007bff', borderRadius: '50%', marginLeft: 10 },
-  messages: { flex: 1, padding: '20px', overflowY: 'auto' as const, display: 'flex', flexDirection: 'column' as const, background: '#f4f7f9' },
-  message: { padding: '10px 15px', borderRadius: '18px', marginBottom: '10px', maxWidth: '70%', wordWrap: 'break-word' as const },
-  myMessage: { background: 'linear-gradient(45deg, #007bff, #0056b3)', color: 'white', alignSelf: 'flex-end', boxShadow: '0 2px 5px rgba(0, 123, 255, 0.2)' },
-  theirMessage: { background: '#e9ecef', color: '#333', alignSelf: 'flex-start' },
-  replyInputContainer: { display: 'flex', padding: '15px', borderTop: '1px solid #e0e0e0', background: '#fff' },
-  replyInput: { flex: 1, padding: '12px 18px', borderRadius: '22px', border: '1px solid #ccc', background: '#f0f0f0', color: '#333', outline: 'none', fontSize: '1rem' },
-  sendButton: { marginLeft: '10px', padding: '10px 20px', borderRadius: '22px', border: 'none', background: '#007bff', color: 'white', cursor: 'pointer', fontSize: '1rem', fontWeight: 'bold' },
-  noChatSelected: { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', fontSize: '1.2rem', color: '#aaa' }
+  container: (isMobile: boolean): React.CSSProperties => ({ 
+    display: 'flex', 
+    flexDirection: (isMobile ? 'column' : 'row') as React.CSSProperties['flexDirection'], 
+    height: 'calc(100vh - 220px)', 
+    maxHeight: 'calc(100vh - 220px)',
+    background: '#ffffff', 
+    borderRadius: '16px', 
+    border: '1px solid #e2e8f0', 
+    boxShadow: '0 8px 30px rgba(0, 0, 0, 0.08)', 
+    overflow: 'hidden' 
+  }),
+  leftPanel: (isMobile: boolean): React.CSSProperties => ({ 
+    width: isMobile ? '100%' : '32%', 
+    maxWidth: isMobile ? 'none' : '420px', 
+    borderRight: isMobile ? 'none' : '1px solid #e2e8f0', 
+    borderBottom: isMobile ? '1px solid #e2e8f0' : 'none', 
+    display: 'flex', 
+    flexDirection: 'column' as const, 
+    flexShrink: 0,
+    background: '#ffffff',
+    height: '100%',
+    overflow: 'hidden'
+  }),
+  searchContainer: {
+    padding: '16px',
+    borderBottom: '1px solid #e2e8f0',
+    background: '#ffffff'
+  },
+  searchInput: {
+    width: '100%',
+    padding: '12px 16px 12px 44px',
+    fontSize: '0.9rem',
+    borderRadius: '12px',
+    border: '2px solid #e2e8f0',
+    background: '#f8fafc',
+    color: '#1e293b',
+    outline: 'none',
+    transition: 'all 0.2s',
+    boxSizing: 'border-box' as const
+  },
+  searchIcon: {
+    position: 'absolute' as const,
+    left: '28px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    color: '#94a3b8',
+    pointerEvents: 'none' as const
+  },
+  chatWindow: { 
+    flex: 1, 
+    height: '100%', 
+    display: 'flex', 
+    flexDirection: 'column' as const,
+    background: 'linear-gradient(to bottom, #f8fafc, #f1f5f9)',
+    minHeight: 0,
+    overflow: 'hidden'
+  },
+  chatListContainer: { 
+    flex: 1, 
+    overflowY: 'auto' as const,
+    background: '#ffffff',
+    minHeight: 0
+  },
+  chatBox: { 
+    padding: '16px 18px', 
+    borderBottom: '1px solid #f1f5f9', 
+    cursor: 'pointer', 
+    display: 'flex', 
+    alignItems: 'center', 
+    background: '#ffffff',
+    transition: 'all 0.2s ease',
+    position: 'relative' as const
+  },
+  activeChatBox: { 
+    background: 'linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%)', 
+    borderLeft: '4px solid #005bb5',
+    boxShadow: '0 2px 8px rgba(0, 91, 181, 0.1)',
+  },
+  chatIcon: { 
+    marginRight: 14, 
+    display: 'flex', 
+    alignItems: 'center',
+    width: '48px',
+    height: '48px',
+    borderRadius: '50%',
+    background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+    justifyContent: 'center',
+    flexShrink: 0
+  },
+  chatInfo: { 
+    flex: 1, 
+    overflow: 'hidden',
+    minWidth: 0
+  },
+  chatName: { 
+    fontWeight: 600, 
+    fontSize: '0.95rem', 
+    color: '#1e293b', 
+    marginBottom: '6px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  },
+  lastMessage: { 
+    fontSize: '0.875rem', 
+    color: '#64748b', 
+    whiteSpace: 'nowrap', 
+    overflow: 'hidden', 
+    textOverflow: 'ellipsis',
+    lineHeight: '1.4',
+    marginTop: '4px'
+  },
+  lastMessageMeta: {
+    fontSize: '0.75rem',
+    color: '#94a3b8',
+    marginTop: '2px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px'
+  },
+  unreadDot: { 
+    width: '10px', 
+    height: '10px', 
+    background: 'linear-gradient(135deg, #005bb5 0%, #007bff 100%)', 
+    borderRadius: '50%', 
+    marginLeft: 'auto',
+    flexShrink: 0,
+    boxShadow: '0 2px 6px rgba(0, 91, 181, 0.3)'
+  },
+  messages: { 
+    flex: 1, 
+    padding: '24px 20px', 
+    overflowY: 'auto' as const, 
+    display: 'flex', 
+    flexDirection: 'column' as const, 
+    background: 'linear-gradient(to bottom, #f8fafc, #f1f5f9)',
+    gap: '12px'
+  },
+  message: { 
+    padding: '12px 16px', 
+    borderRadius: '16px', 
+    marginBottom: '4px', 
+    maxWidth: '75%', 
+    wordWrap: 'break-word' as const,
+    position: 'relative' as const,
+    animation: 'messageSlide 0.3s ease-out'
+  },
+  myMessage: { 
+    background: 'linear-gradient(135deg, #005bb5 0%, #007bff 100%)', 
+    color: 'white', 
+    alignSelf: 'flex-end', 
+    boxShadow: '0 2px 8px rgba(0, 91, 181, 0.25)',
+    borderBottomRightRadius: '4px'
+  },
+  theirMessage: { 
+    background: '#ffffff', 
+    color: '#1e293b', 
+    alignSelf: 'flex-start',
+    border: '1px solid #e2e8f0',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+    borderBottomLeftRadius: '4px'
+  },
+  messageTime: {
+    fontSize: '0.7rem',
+    opacity: 0.7,
+    marginTop: '4px',
+    display: 'block'
+  },
+  replyInputContainer: { 
+    display: 'flex', 
+    padding: '16px 20px', 
+    borderTop: '1px solid #e2e8f0', 
+    background: '#ffffff',
+    alignItems: 'center',
+    gap: '12px'
+  },
+  replyInput: { 
+    flex: 1, 
+    padding: '14px 20px', 
+    borderRadius: '24px', 
+    border: '2px solid #e2e8f0', 
+    background: '#f8fafc', 
+    color: '#1e293b', 
+    outline: 'none', 
+    fontSize: '0.95rem',
+    transition: 'all 0.2s',
+    fontFamily: 'inherit'
+  },
+  sendButton: { 
+    padding: '14px 24px', 
+    borderRadius: '24px', 
+    border: 'none', 
+    background: 'linear-gradient(135deg, #005bb5 0%, #007bff 100%)', 
+    color: 'white', 
+    cursor: 'pointer', 
+    fontSize: '0.95rem', 
+    fontWeight: 600,
+    boxShadow: '0 4px 12px rgba(0, 91, 181, 0.3)',
+    transition: 'all 0.2s',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px'
+  },
+  noChatSelected: { 
+    display: 'flex', 
+    flexDirection: 'column' as const,
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    height: '100%', 
+    fontSize: '1.1rem', 
+    color: '#94a3b8',
+    gap: '12px'
+  },
+  chatHeader: {
+    padding: '20px',
+    borderBottom: '1px solid #e2e8f0',
+    background: '#ffffff',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
+  },
+  chatHeaderName: {
+    fontSize: '1.1rem',
+    fontWeight: 600,
+    color: '#1e293b'
+  },
+  chatHeaderPlatform: {
+    fontSize: '0.85rem',
+    color: '#64748b',
+    marginLeft: 'auto'
+  }
 };
 
 const filterBarStyles: { [key: string]: React.CSSProperties } = {
-    container: { display: 'flex', alignItems: 'center', padding: '12px 15px', borderBottom: '1px solid #e0e0e0', background: '#fff', gap: '24px', flexWrap: 'wrap' },
-    statusFilter: { display: 'flex', padding: '5px', background: '#e9ecef', borderRadius: '8px', flexShrink: 0 },
-    statusButton: { display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 18px', fontSize: '0.9rem', background: 'none', border: 'none', borderRadius: '6px', cursor: 'pointer', color: '#495057', fontWeight: 500, transition: 'background 0.2s, color 0.2s, transform 0.2s', whiteSpace: 'nowrap', outline: 'none' },
-    activeStatusButton: { background: '#fff', color: '#007bff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', transform: 'scale(1.03)' },
-    unreadCountBadge: { background: '#007bff', color: 'white', fontSize: '0.75rem', fontWeight: 'bold', padding: '3px 7px', borderRadius: '7px', lineHeight: 1 },
-    filterDropdown: { position: 'relative' },
-    dropdownButton: { display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem', color: '#495057', fontWeight: 500, padding: '6px', borderRadius: '6px' },
-    dropdownMenu: { position: 'absolute', top: '35px', left: 0, background: 'white', borderRadius: '8px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', border: '1px solid #e0e0e0', zIndex: 10, minWidth: '160px', overflow: 'hidden' },
-    dropdownMenuItem: { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 15px', cursor: 'pointer', fontSize: '0.9rem', color: '#333', transition: 'background 0.2s' }
+    container: { 
+      display: 'flex', 
+      alignItems: 'center', 
+      padding: '16px 20px', 
+      borderBottom: '1px solid #e2e8f0', 
+      background: '#ffffff', 
+      gap: '20px', 
+      flexWrap: 'wrap' 
+    },
+    statusFilter: { 
+      display: 'flex', 
+      padding: '4px', 
+      background: '#f1f5f9', 
+      borderRadius: '10px', 
+      flexShrink: 0,
+      gap: '4px'
+    },
+    statusButton: { 
+      display: 'flex', 
+      alignItems: 'center', 
+      gap: '8px', 
+      padding: '8px 16px', 
+      fontSize: '0.875rem', 
+      background: 'none', 
+      border: 'none', 
+      borderRadius: '8px', 
+      cursor: 'pointer', 
+      color: '#64748b', 
+      fontWeight: 500, 
+      transition: 'all 0.2s', 
+      whiteSpace: 'nowrap' as const, 
+      outline: 'none' 
+    },
+    activeStatusButton: { 
+      background: 'linear-gradient(135deg, #005bb5 0%, #007bff 100%)', 
+      color: 'white', 
+      boxShadow: '0 2px 8px rgba(0, 91, 181, 0.3)',
+      transform: 'scale(1.02)'
+    },
+    unreadCountBadge: { 
+      background: 'rgba(255, 255, 255, 0.3)', 
+      color: 'white', 
+      fontSize: '0.7rem', 
+      fontWeight: 700, 
+      padding: '2px 6px', 
+      borderRadius: '10px', 
+      lineHeight: 1 
+    },
+    filterDropdown: { 
+      position: 'relative' as const 
+    },
+    dropdownButton: { 
+      display: 'flex', 
+      alignItems: 'center', 
+      gap: '6px', 
+      background: '#f8fafc', 
+      border: '2px solid #e2e8f0', 
+      cursor: 'pointer', 
+      fontSize: '0.875rem', 
+      color: '#475569', 
+      fontWeight: 500, 
+      padding: '8px 12px', 
+      borderRadius: '8px',
+      transition: 'all 0.2s'
+    },
+    dropdownMenu: { 
+      position: 'absolute' as const, 
+      top: '42px', 
+      left: 0, 
+      background: 'white', 
+      borderRadius: '12px', 
+      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)', 
+      border: '1px solid #e2e8f0', 
+      zIndex: 10, 
+      minWidth: '180px', 
+      overflow: 'hidden' 
+    },
+    dropdownMenuItem: { 
+      display: 'flex', 
+      alignItems: 'center', 
+      gap: '10px', 
+      padding: '12px 16px', 
+      cursor: 'pointer', 
+      fontSize: '0.875rem', 
+      color: '#1e293b', 
+      transition: 'background 0.2s' 
+    }
 };
 
 const sidebarStyles: { [key: string]: React.CSSProperties } = {
@@ -352,7 +672,7 @@ const OrderCreationSidebar: React.FC<OrderCreationSidebarProps> = ({ activeChat,
 
     const handleAddItem = (e?: React.MouseEvent) => {
         if (e) {
-            e.preventDefault();
+        e.preventDefault();
             e.stopPropagation();
         }
         
@@ -463,7 +783,7 @@ const OrderCreationSidebar: React.FC<OrderCreationSidebarProps> = ({ activeChat,
             // Reset form after successful order creation
             console.log('🔄 Resetting form...');
             setSelectedItems([]);
-            setAddress('');
+        setAddress('');
             setNotes('');
             setQuantity(1);
             setSelectedCatalogId('');
@@ -745,35 +1065,325 @@ const FilterBar: React.FC<FilterBarProps> = ({ statusFilter, setStatusFilter, pl
     const dateLabels: Record<DateFilter, string> = { all: 'All Time', today: 'Today', 'last7days': 'Last 7 Days' };
     return (
         <div style={filterBarStyles.container}>
-            <div style={filterBarStyles.statusFilter}><button onClick={() => setStatusFilter('all')} style={{ ...filterBarStyles.statusButton, ...(statusFilter === 'all' ? filterBarStyles.activeStatusButton : {}) }}>All</button><button onClick={() => setStatusFilter('unread')} style={{ ...filterBarStyles.statusButton, ...(statusFilter === 'unread' ? filterBarStyles.activeStatusButton : {}) }}><span>Unread</span>{unreadCount > 0 && <span style={filterBarStyles.unreadCountBadge}>{unreadCount}</span>}</button><button onClick={() => setStatusFilter('read')} style={{ ...filterBarStyles.statusButton, ...(statusFilter === 'read' ? filterBarStyles.activeStatusButton : {}) }}>Read</button></div>
-            <div style={filterBarStyles.filterDropdown} ref={platformDropdown.ref}><button style={filterBarStyles.dropdownButton} onClick={() => platformDropdown.setIsOpen(!platformDropdown.isOpen)}><PlatformFilterIcon platform={platformFilter} /><ChevronDownIcon style={{ width: 16, height: 16 }} /></button>{platformDropdown.isOpen && (<div style={filterBarStyles.dropdownMenu}>{(Object.keys(platformMenuLabels) as Array<Platform | 'all'>).map(p => (<div key={p} style={filterBarStyles.dropdownMenuItem} onMouseOver={e => e.currentTarget.style.backgroundColor = '#f0f0f0'} onMouseOut={e => e.currentTarget.style.backgroundColor = 'white'} onClick={() => { setPlatformFilter(p); platformDropdown.setIsOpen(false); }}><PlatformFilterIcon platform={p} /><span>{platformMenuLabels[p]}</span></div>))}</div>)}</div>
-            <div style={filterBarStyles.filterDropdown} ref={dateDropdown.ref}><button style={filterBarStyles.dropdownButton} onClick={() => dateDropdown.setIsOpen(!dateDropdown.isOpen)}><span>{dateLabels[dateFilter]}</span><ChevronDownIcon style={{ width: 16, height: 16 }}/></button>{dateDropdown.isOpen && (<div style={filterBarStyles.dropdownMenu}>{(Object.keys(dateLabels) as DateFilter[]).map(d => (<div key={d} style={filterBarStyles.dropdownMenuItem} onMouseOver={e => e.currentTarget.style.backgroundColor = '#f0f0f0'} onMouseOut={e => e.currentTarget.style.backgroundColor = 'white'} onClick={() => { setDateFilter(d); dateDropdown.setIsOpen(false); }}>{dateLabels[d]}</div>))}</div>)}</div>
+            <div style={filterBarStyles.statusFilter}>
+              <button 
+                onClick={() => setStatusFilter('all')} 
+                style={{ ...filterBarStyles.statusButton, ...(statusFilter === 'all' ? filterBarStyles.activeStatusButton : {}) }}
+                onMouseOver={(e) => {
+                  if (statusFilter !== 'all') {
+                    e.currentTarget.style.background = '#e2e8f0';
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (statusFilter !== 'all') {
+                    e.currentTarget.style.background = 'none';
+                  }
+                }}
+              >
+                All
+              </button>
+              <button 
+                onClick={() => setStatusFilter('unread')} 
+                style={{ ...filterBarStyles.statusButton, ...(statusFilter === 'unread' ? filterBarStyles.activeStatusButton : {}) }}
+                onMouseOver={(e) => {
+                  if (statusFilter !== 'unread') {
+                    e.currentTarget.style.background = '#e2e8f0';
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (statusFilter !== 'unread') {
+                    e.currentTarget.style.background = 'none';
+                  }
+                }}
+              >
+                <span>Unread</span>
+                {unreadCount > 0 && <span style={filterBarStyles.unreadCountBadge}>{unreadCount}</span>}
+              </button>
+              <button 
+                onClick={() => setStatusFilter('read')} 
+                style={{ ...filterBarStyles.statusButton, ...(statusFilter === 'read' ? filterBarStyles.activeStatusButton : {}) }}
+                onMouseOver={(e) => {
+                  if (statusFilter !== 'read') {
+                    e.currentTarget.style.background = '#e2e8f0';
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (statusFilter !== 'read') {
+                    e.currentTarget.style.background = 'none';
+                  }
+                }}
+              >
+                Read
+              </button>
+            </div>
+            <div style={filterBarStyles.filterDropdown} ref={platformDropdown.ref}>
+              <button 
+                style={filterBarStyles.dropdownButton} 
+                onClick={() => platformDropdown.setIsOpen(!platformDropdown.isOpen)}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.borderColor = '#005bb5';
+                  e.currentTarget.style.background = '#ffffff';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.borderColor = '#e2e8f0';
+                  e.currentTarget.style.background = '#f8fafc';
+                }}
+              >
+                <PlatformFilterIcon platform={platformFilter} />
+                <ChevronDownIcon style={{ width: 16, height: 16 }} />
+              </button>
+              {platformDropdown.isOpen && (
+                <div style={filterBarStyles.dropdownMenu}>
+                  {(Object.keys(platformMenuLabels) as Array<Platform | 'all'>).map(p => (
+                    <div 
+                      key={p} 
+                      style={filterBarStyles.dropdownMenuItem} 
+                      onMouseOver={e => e.currentTarget.style.backgroundColor = '#f1f5f9'} 
+                      onMouseOut={e => e.currentTarget.style.backgroundColor = 'white'} 
+                      onClick={() => { setPlatformFilter(p); platformDropdown.setIsOpen(false); }}
+                    >
+                      <PlatformFilterIcon platform={p} />
+                      <span>{platformMenuLabels[p]}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div style={filterBarStyles.filterDropdown} ref={dateDropdown.ref}>
+              <button 
+                style={filterBarStyles.dropdownButton} 
+                onClick={() => dateDropdown.setIsOpen(!dateDropdown.isOpen)}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.borderColor = '#005bb5';
+                  e.currentTarget.style.background = '#ffffff';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.borderColor = '#e2e8f0';
+                  e.currentTarget.style.background = '#f8fafc';
+                }}
+              >
+                <span>{dateLabels[dateFilter]}</span>
+                <ChevronDownIcon style={{ width: 16, height: 16 }}/>
+              </button>
+              {dateDropdown.isOpen && (
+                <div style={filterBarStyles.dropdownMenu}>
+                  {(Object.keys(dateLabels) as DateFilter[]).map(d => (
+                    <div 
+                      key={d} 
+                      style={filterBarStyles.dropdownMenuItem} 
+                      onMouseOver={e => e.currentTarget.style.backgroundColor = '#f1f5f9'} 
+                      onMouseOut={e => e.currentTarget.style.backgroundColor = 'white'} 
+                      onClick={() => { setDateFilter(d); dateDropdown.setIsOpen(false); }}
+                    >
+                      {dateLabels[d]}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+        </div>
+    );
+};
+
+// Notification Component
+interface NotificationProps {
+    message: string;
+    type: 'success' | 'error';
+    onClose: () => void;
+}
+
+const Notification: React.FC<NotificationProps> = ({ message, type, onClose }) => {
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            onClose();
+        }, 5000); // Auto-close after 5 seconds
+        return () => clearTimeout(timer);
+    }, [onClose]);
+
+    return (
+        <div style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            background: type === 'success' 
+                ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' 
+                : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+            color: 'white',
+            padding: '16px 20px',
+            borderRadius: '12px',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)',
+            zIndex: 10000,
+            minWidth: '320px',
+            maxWidth: '400px',
+            animation: 'slideInRight 0.3s ease-out',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            cursor: 'pointer'
+        }} onClick={onClose}>
+            <div style={{ flexShrink: 0 }}>
+                {type === 'success' ? (
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                        <polyline points="22 4 12 14.01 9 11.01" />
+                    </svg>
+                ) : (
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                )}
+            </div>
+            <div style={{ flex: 1, fontSize: '0.95rem', lineHeight: '1.5' }}>
+                {message}
+            </div>
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onClose();
+                }}
+                style={{
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '24px',
+                    height: '24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                    color: 'white'
+                }}
+            >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
         </div>
     );
 };
 
 interface ChatsComponentProps { chats: Chat[]; setChats: React.Dispatch<React.SetStateAction<Chat[]>>; setOrders: React.Dispatch<React.SetStateAction<Order[]>>; isMobile: boolean; }
 const ChatsComponent: React.FC<ChatsComponentProps> = ({ chats, setChats, setOrders, isMobile }) => {
-    const [activeChatId, setActiveChatId] = useState<number | null>(null);
+    // Load last opened chat from localStorage
+    const getLastOpenedChatId = (): number | null => {
+        try {
+            const saved = localStorage.getItem('lastOpenedChatId');
+            return saved ? parseInt(saved, 10) : null;
+        } catch {
+            return null;
+        }
+    };
+
+    // Load filter states from localStorage
+    const getSavedFilter = (key: string, defaultValue: string): string => {
+        try {
+            const saved = localStorage.getItem(`chatFilter_${key}`);
+            return saved || defaultValue;
+        } catch {
+            return defaultValue;
+        }
+    };
+
+    const [activeChatId, setActiveChatId] = useState<number | null>(getLastOpenedChatId());
     const [replyText, setReplyText] = useState('');
-    const [statusFilter, setStatusFilter] = useState<ChatStatus | 'all'>('unread');
-    const [platformFilter, setPlatformFilter] = useState<Platform | 'all'>('all');
-    const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+    const [statusFilter, setStatusFilter] = useState<ChatStatus | 'all'>(getSavedFilter('status', 'all') as ChatStatus | 'all');
+    const [platformFilter, setPlatformFilter] = useState<Platform | 'all'>(getSavedFilter('platform', 'all') as Platform | 'all');
+    const [dateFilter, setDateFilter] = useState<DateFilter>(getSavedFilter('date', 'all') as DateFilter);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+    // Save filter states to localStorage whenever they change
+    useEffect(() => {
+        localStorage.setItem('chatFilter_status', statusFilter);
+    }, [statusFilter]);
+
+    useEffect(() => {
+        localStorage.setItem('chatFilter_platform', platformFilter);
+    }, [platformFilter]);
+
+    useEffect(() => {
+        localStorage.setItem('chatFilter_date', dateFilter);
+    }, [dateFilter]);
+    
     const filteredChats = useMemo(() => {
         const today = new Date(); const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(today.getDate() - 7);
         return chats.filter(chat => {
+            // Search filter
+            if (searchQuery.trim()) {
+                const query = searchQuery.toLowerCase();
+                if (!chat.name.toLowerCase().includes(query) && 
+                    !chat.lastMessage.toLowerCase().includes(query)) {
+                    return false;
+                }
+            }
+            // Status filter
             if (statusFilter !== 'all' && chat.status !== statusFilter) return false;
+            // Platform filter
             if (platformFilter !== 'all' && chat.platform !== platformFilter) return false;
+            // Date filter
             const chatDate = new Date(chat.date);
             if (dateFilter === 'today' && chatDate.toDateString() !== today.toDateString()) return false;
             if (dateFilter === 'last7days' && chatDate < sevenDaysAgo) return false;
             return true;
         });
-    }, [chats, statusFilter, platformFilter, dateFilter]);
+    }, [chats, statusFilter, platformFilter, dateFilter, searchQuery]);
     const unreadCount = useMemo(() => chats.filter(c => c.status === 'unread').length, [chats]);
     const activeChat = chats.find(c => c.id === activeChatId);
 
-    useEffect(() => { if (!isMobile && filteredChats.length > 0 && !activeChatId) { setActiveChatId(filteredChats[0].id); } if (isMobile) { setActiveChatId(null) } }, [isMobile, filteredChats, activeChatId]);
+    // Save to localStorage whenever activeChatId changes
+    useEffect(() => {
+        if (activeChatId !== null) {
+            localStorage.setItem('lastOpenedChatId', activeChatId.toString());
+        }
+    }, [activeChatId]);
+
+    // Restore last opened chat or select first available chat
+    useEffect(() => {
+        if (isMobile) {
+            setActiveChatId(null);
+            return;
+        }
+        
+        if (filteredChats.length > 0) {
+            if (!activeChatId) {
+                // Try to restore last opened chat from localStorage
+                const lastChatId = getLastOpenedChatId();
+                // Check if last chat exists in ALL chats (not just filtered)
+                const lastChatExistsInAll = lastChatId && chats.some(c => c.id === lastChatId);
+                // Check if last chat exists in filtered chats
+                const lastChatExistsInFiltered = lastChatId && filteredChats.some(c => c.id === lastChatId);
+                
+                if (lastChatExistsInAll && lastChatExistsInFiltered) {
+                    // Last chat exists and is visible, restore it
+                    setActiveChatId(lastChatId);
+                } else if (lastChatExistsInAll && !lastChatExistsInFiltered) {
+                    // Last chat exists but is filtered out, try to find it in all chats and restore it
+                    // (This allows restoring even if filters are applied)
+                    setActiveChatId(lastChatId);
+                } else {
+                    // Last chat doesn't exist or not found, select first available filtered chat
+                    setActiveChatId(filteredChats[0].id);
+                }
+            } else {
+                // Verify current active chat still exists in filtered list
+                const chatExists = filteredChats.some(c => c.id === activeChatId);
+                if (!chatExists) {
+                    // Current chat is filtered out, try to restore last opened or select first available
+                    const lastChatId = getLastOpenedChatId();
+                    const lastChatExists = lastChatId && filteredChats.some(c => c.id === lastChatId);
+                    if (lastChatExists) {
+                        setActiveChatId(lastChatId);
+                    } else {
+                        setActiveChatId(filteredChats[0].id);
+                    }
+                }
+            }
+        }
+    }, [isMobile, filteredChats, chats, activeChatId]);
 
     const handleSendReply = async () => {
         if (!replyText.trim() || !activeChatId) return;
@@ -844,53 +1454,481 @@ const ChatsComponent: React.FC<ChatsComponentProps> = ({ chats, setChats, setOrd
                 origin: { y: 0.6 }
             });
             
-            // Show success message with order details (no emojis in UI)
-            const itemsList = newOrderData.selectedItems.map(item => `  • ${item.quantity}x ${item.catalogItem.name}`).join('\n');
-            alert(`Order created successfully!\n\nOrder ID: ${createdOrder.id}\nTotal: $${newOrderData.amount.toFixed(2)}\n\nItems:\n${itemsList}`);
+            // Show success notification in bottom right
+            setNotification({
+                message: `Order #${createdOrder.id} created! Total: $${newOrderData.amount.toFixed(2)}`,
+                type: 'success'
+            });
             
         } catch (error: any) {
             console.error('❌ Error creating order:', error);
             console.error('   Error response:', error.response?.data);
             console.error('   Error status:', error.response?.status);
             
-            // Show detailed error message (no emojis in UI)
+            // Show error notification in bottom right
             const errorMessage = error.response?.data?.detail || error.message || 'Unknown error occurred';
-            alert(`Failed to create order:\n\n${errorMessage}\n\nCheck browser console (F12) for details.`);
+            setNotification({
+                message: `Failed to create order: ${errorMessage}`,
+                type: 'error'
+            });
         }
     };
 
-    if (isMobile && activeChatId) {
+    // Mobile view: show chat list when no chat selected, show chat window when chat selected
+    if (isMobile) {
+        if (activeChatId) {
         return (
             <div style={chatStyles.container(isMobile)}>
-                <div style={chatStyles.chatWindow}>{activeChat ? (<>
-                        <button onClick={() => setActiveChatId(null)} style={{ padding: '10px', border: 'none', background: '#f0f0f0', borderBottom: '1px solid #ddd' }}>← Back to Chats</button>
-                        <div style={chatStyles.messages}>{activeChat.messages.map((msg, index) => <div key={index} style={{ ...chatStyles.message, ...(msg.sender === 'me' ? chatStyles.myMessage : chatStyles.theirMessage) }}>{msg.text}</div>)}</div>
-                        <div style={chatStyles.replyInputContainer}><input type="text" style={chatStyles.replyInput} placeholder="Type a message..." value={replyText} onChange={e => setReplyText(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSendReply()} /><button style={chatStyles.sendButton} onClick={handleSendReply}>Send</button></div>
-                    </>) : null}
+                    <div style={chatStyles.chatWindow}>
+                  {activeChat ? (
+                    <>
+                      <button 
+                        onClick={() => setActiveChatId(null)} 
+                        style={{ 
+                          padding: '12px 16px', 
+                          border: 'none', 
+                          background: '#ffffff', 
+                          borderBottom: '1px solid #e2e8f0',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          fontSize: '0.9rem',
+                          color: '#64748b',
+                          fontWeight: 500
+                        }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <polyline points="15 18 9 12 15 6" />
+                        </svg>
+                        Back to Chats
+                      </button>
+                      <div style={chatStyles.chatHeader}>
+                        <div style={chatStyles.chatIcon}>
+                          <PlatformIcon platform={activeChat.platform} />
                 </div>
+                        <div>
+                          <div style={chatStyles.chatHeaderName}>{activeChat.name}</div>
+                        </div>
+                        <div style={chatStyles.chatHeaderPlatform}>{activeChat.platform}</div>
+                      </div>
+                      <div style={chatStyles.messages}>
+                        {activeChat.messages.length === 0 ? (
+                          <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
+                            <div style={{ fontSize: '0.9rem' }}>No messages yet. Start the conversation!</div>
+                          </div>
+                        ) : (
+                          activeChat.messages.map((msg, index) => {
+                            const isMe = msg.sender === 'me';
+                            return (
+                              <div 
+                                key={index} 
+                                style={{ 
+                                  ...chatStyles.message, 
+                                  ...(isMe ? chatStyles.myMessage : chatStyles.theirMessage)
+                                }}
+                              >
+                                {msg.text}
+                                <span style={chatStyles.messageTime}>
+                                  {formatMessageTime(msg.created_at)}
+                                </span>
             </div>
         );
+                          })
+                        )}
+                      </div>
+                      <div style={chatStyles.replyInputContainer}>
+                        <input 
+                          type="text" 
+                          style={chatStyles.replyInput} 
+                          placeholder="Type a message..." 
+                          value={replyText} 
+                          onChange={e => setReplyText(e.target.value)} 
+                          onKeyPress={(e) => e.key === 'Enter' && handleSendReply()}
+                          onFocus={(e) => {
+                            e.currentTarget.style.borderColor = '#005bb5';
+                            e.currentTarget.style.background = '#ffffff';
+                            e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0, 91, 181, 0.1)';
+                          }}
+                          onBlur={(e) => {
+                            e.currentTarget.style.borderColor = '#e2e8f0';
+                            e.currentTarget.style.background = '#f8fafc';
+                            e.currentTarget.style.boxShadow = 'none';
+                          }}
+                        />
+                        <button 
+                          style={chatStyles.sendButton}
+                          onClick={handleSendReply}
+                          onMouseOver={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 91, 181, 0.4)';
+                          }}
+                          onMouseOut={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 91, 181, 0.3)';
+                          }}
+                        >
+                          Send
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="22" y1="2" x2="11" y2="13" />
+                            <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                          </svg>
+                        </button>
+                      </div>
+                    </>
+                  ) : null}
+                </div>
+            </div>
+            );
+        } else {
+            // Mobile: show chat list when no chat selected
+            return (
+                <div style={chatStyles.container(isMobile)}>
+                    <div style={chatStyles.leftPanel(isMobile)}>
+                        {/* Global Search Bar */}
+                        <div style={chatStyles.searchContainer}>
+                            <div style={{ position: 'relative' }}>
+                                <svg 
+                                    style={chatStyles.searchIcon}
+                                    width="18" 
+                                    height="18" 
+                                    viewBox="0 0 24 24" 
+                                    fill="none" 
+                                    stroke="currentColor" 
+                                    strokeWidth="2"
+                                >
+                                    <circle cx="11" cy="11" r="8" />
+                                    <path d="m21 21-4.35-4.35" />
+                                </svg>
+                                <input
+                                    type="text"
+                                    placeholder="Search chats..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    style={chatStyles.searchInput}
+                                    onFocus={(e) => {
+                                        e.currentTarget.style.borderColor = '#005bb5';
+                                        e.currentTarget.style.background = '#ffffff';
+                                        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0, 91, 181, 0.1)';
+                                    }}
+                                    onBlur={(e) => {
+                                        e.currentTarget.style.borderColor = '#e2e8f0';
+                                        e.currentTarget.style.background = '#f8fafc';
+                                        e.currentTarget.style.boxShadow = 'none';
+                                    }}
+                                />
+                            </div>
+                        </div>
+                        
+                        <FilterBar statusFilter={statusFilter} setStatusFilter={setStatusFilter} platformFilter={platformFilter} setPlatformFilter={setPlatformFilter} dateFilter={dateFilter} setDateFilter={setDateFilter} unreadCount={unreadCount} />
+                        <div style={chatStyles.chatListContainer}>
+                            {filteredChats.length === 0 ? (
+                                <div style={{ padding: '40px 20px', textAlign: 'center', color: '#94a3b8' }}>
+                                    <div style={{ fontSize: '0.9rem' }}>No chats found</div>
+                                </div>
+                            ) : (
+                                filteredChats.map(chat => (
+                                    <div 
+                                        key={chat.id} 
+                                        style={{ 
+                                            ...chatStyles.chatBox, 
+                                            ...(chat.id === activeChatId ? chatStyles.activeChatBox : {})
+                                        }} 
+                                        onClick={async () => { 
+                                            setActiveChatId(chat.id); 
+                                            if (chat.status === 'unread') { 
+                                                try {
+                                                    await updateChat(chat.id, { status: 'read' });
+                                                    const updatedChats = await getChats();
+                                                    setChats(updatedChats.map(transformApiChatToFrontendChat));
+                                                } catch (error) {
+                                                    console.error('Error updating chat status:', error);
+                                                }
+                                            } 
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (chat.id !== activeChatId) {
+                                                e.currentTarget.style.background = '#f8fafc';
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (chat.id !== activeChatId) {
+                                                e.currentTarget.style.background = '#ffffff';
+                                            }
+                                        }}
+                                    >
+                                        <div style={chatStyles.chatIcon}>
+                                            <PlatformIcon platform={chat.platform} />
+                                        </div>
+                                        <div style={chatStyles.chatInfo}>
+                                            <div style={chatStyles.chatName}>
+                                                {chat.name}
+                                                {chat.status === 'unread' && (
+                                                    <span style={{ 
+                                                        fontSize: '0.7rem', 
+                                                        background: 'linear-gradient(135deg, #005bb5 0%, #007bff 100%)',
+                                                        color: 'white',
+                                                        padding: '2px 6px',
+                                                        borderRadius: '10px',
+                                                        fontWeight: 600
+                                                    }}>
+                                                        New
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div style={chatStyles.lastMessage}>
+                                                {chat.lastMessage || 'No messages yet'}
+                                            </div>
+                                            {(chat.lastMessageSender || chat.lastMessageTime) && (
+                                                <div style={chatStyles.lastMessageMeta}>
+                                                    {chat.lastMessageSender && (
+                                                        <span style={{ 
+                                                            color: chat.lastMessageSender === 'me' ? '#005bb5' : '#64748b',
+                                                            fontWeight: chat.lastMessageSender === 'me' ? 600 : 400
+                                                        }}>
+                                                            {chat.lastMessageSender === 'me' ? 'You' : chat.name.split(' ')[0]}:
+                                                        </span>
+                                                    )}
+                                                    {chat.lastMessageTime && (
+                                                        <span>
+                                                            {formatMessageTime(chat.lastMessageTime)}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                        {chat.status === 'unread' && <div style={chatStyles.unreadDot} />}
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
     }
 
     return (
         <div style={chatStyles.container(isMobile)}>
             <div style={chatStyles.leftPanel(isMobile)}>
+                {/* Global Search Bar */}
+                <div style={chatStyles.searchContainer}>
+                  <div style={{ position: 'relative' }}>
+                    <svg 
+                      style={chatStyles.searchIcon}
+                      width="18" 
+                      height="18" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="2"
+                    >
+                      <circle cx="11" cy="11" r="8" />
+                      <path d="m21 21-4.35-4.35" />
+                    </svg>
+                    <input
+                      type="text"
+                      placeholder="Search chats..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      style={chatStyles.searchInput}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = '#005bb5';
+                        e.currentTarget.style.background = '#ffffff';
+                        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0, 91, 181, 0.1)';
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = '#e2e8f0';
+                        e.currentTarget.style.background = '#f8fafc';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    />
+                  </div>
+                </div>
+                
                 <FilterBar statusFilter={statusFilter} setStatusFilter={setStatusFilter} platformFilter={platformFilter} setPlatformFilter={setPlatformFilter} dateFilter={dateFilter} setDateFilter={setDateFilter} unreadCount={unreadCount} />
-                <div style={chatStyles.chatListContainer}>{filteredChats.map(chat => (<div key={chat.id} style={{ ...chatStyles.chatBox, ...(chat.id === activeChatId ? chatStyles.activeChatBox : {}) }} onClick={async () => { 
-                    setActiveChatId(chat.id); 
-                    if (chat.status === 'unread') { 
-                        try {
-                            await updateChat(chat.id, { status: 'read' });
-                            const updatedChats = await getChats();
-                            setChats(updatedChats.map(transformApiChatToFrontendChat));
-                        } catch (error) {
-                            console.error('Error updating chat status:', error);
-                        }
-                    } 
-                }}><PlatformIcon platform={chat.platform} /><div style={chatStyles.chatInfo}><div style={chatStyles.chatName}>{chat.name}</div><div style={chatStyles.lastMessage}>{chat.lastMessage}</div></div>{chat.status === 'unread' && <div style={chatStyles.unreadDot} />}</div>))}</div>
+                <div style={chatStyles.chatListContainer}>
+                  {filteredChats.length === 0 ? (
+                    <div style={{ padding: '40px 20px', textAlign: 'center', color: '#94a3b8' }}>
+                      <div style={{ fontSize: '0.9rem' }}>No chats found</div>
             </div>
-            <div style={chatStyles.chatWindow}>{activeChat ? (<><div style={chatStyles.messages}>{activeChat.messages.map((msg, index) => <div key={index} style={{ ...chatStyles.message, ...(msg.sender === 'me' ? { ...chatStyles.myMessage } : { ...chatStyles.theirMessage }) }}>{msg.text}</div>)}</div><div style={chatStyles.replyInputContainer}><input type="text" style={chatStyles.replyInput} placeholder="Type a message..." value={replyText} onChange={e => setReplyText(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSendReply()} /><button style={chatStyles.sendButton} onClick={handleSendReply}>Send</button></div></>) : (!isMobile && <div style={chatStyles.noChatSelected}>Select a conversation to begin</div>)}</div>
+                  ) : (
+                    filteredChats.map(chat => (
+                      <div 
+                        key={chat.id} 
+                        style={{ 
+                          ...chatStyles.chatBox, 
+                          ...(chat.id === activeChatId ? chatStyles.activeChatBox : {})
+                        }} 
+                        onClick={async () => { 
+                          setActiveChatId(chat.id); 
+                          if (chat.status === 'unread') { 
+                            try {
+                              await updateChat(chat.id, { status: 'read' });
+                              const updatedChats = await getChats();
+                              setChats(updatedChats.map(transformApiChatToFrontendChat));
+                            } catch (error) {
+                              console.error('Error updating chat status:', error);
+                            }
+                          } 
+                        }}
+                        onMouseEnter={(e) => {
+                          if (chat.id !== activeChatId) {
+                            e.currentTarget.style.background = '#f8fafc';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (chat.id !== activeChatId) {
+                            e.currentTarget.style.background = '#ffffff';
+                          }
+                        }}
+                      >
+                        <div style={chatStyles.chatIcon}>
+                          <PlatformIcon platform={chat.platform} />
+                        </div>
+                        <div style={chatStyles.chatInfo}>
+                          <div style={chatStyles.chatName}>
+                            {chat.name}
+                            {chat.status === 'unread' && (
+                              <span style={{ 
+                                fontSize: '0.7rem', 
+                                background: 'linear-gradient(135deg, #005bb5 0%, #007bff 100%)',
+                                color: 'white',
+                                padding: '2px 6px',
+                                borderRadius: '10px',
+                                fontWeight: 600
+                              }}>
+                                New
+                              </span>
+                            )}
+                          </div>
+                          <div style={chatStyles.lastMessage}>
+                            {chat.lastMessage || 'No messages yet'}
+                          </div>
+                          {(chat.lastMessageSender || chat.lastMessageTime) && (
+                            <div style={chatStyles.lastMessageMeta}>
+                              {chat.lastMessageSender && (
+                                <span style={{ 
+                                  color: chat.lastMessageSender === 'me' ? '#005bb5' : '#64748b',
+                                  fontWeight: chat.lastMessageSender === 'me' ? 600 : 400
+                                }}>
+                                  {chat.lastMessageSender === 'me' ? 'You' : chat.name.split(' ')[0]}:
+                                </span>
+                              )}
+                              {chat.lastMessageTime && (
+                                <span>
+                                  {formatMessageTime(chat.lastMessageTime)}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        {chat.status === 'unread' && <div style={chatStyles.unreadDot} />}
+                      </div>
+                    ))
+                  )}
+                </div>
+            </div>
+            <div style={chatStyles.chatWindow}>
+              {activeChat ? (
+                <>
+                  {/* Chat Header */}
+                  <div style={chatStyles.chatHeader}>
+                    <PlatformIcon platform={activeChat.platform} />
+                    <div>
+                      <div style={chatStyles.chatHeaderName}>{activeChat.name}</div>
+                    </div>
+                    <div style={chatStyles.chatHeaderPlatform}>{activeChat.platform}</div>
+                  </div>
+                  
+                  {/* Messages */}
+                  <div style={chatStyles.messages}>
+                    {activeChat.messages.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
+                        <div style={{ fontSize: '0.9rem' }}>No messages yet. Start the conversation!</div>
+                      </div>
+                    ) : (
+                      activeChat.messages.map((msg, index) => {
+                        const isMe = msg.sender === 'me';
+                        return (
+                          <div 
+                            key={index} 
+                            style={{ 
+                              ...chatStyles.message, 
+                              ...(isMe ? chatStyles.myMessage : chatStyles.theirMessage)
+                            }}
+                          >
+                            {msg.text}
+                            <span style={chatStyles.messageTime}>
+                              {formatMessageTime(msg.created_at)}
+                            </span>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                  
+                  {/* Input Area */}
+                  <div style={chatStyles.replyInputContainer}>
+                    <input 
+                      type="text" 
+                      style={chatStyles.replyInput} 
+                      placeholder="Type a message..." 
+                      value={replyText} 
+                      onChange={e => setReplyText(e.target.value)} 
+                      onKeyPress={(e) => e.key === 'Enter' && handleSendReply()}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = '#005bb5';
+                        e.currentTarget.style.background = '#ffffff';
+                        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0, 91, 181, 0.1)';
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = '#e2e8f0';
+                        e.currentTarget.style.background = '#f8fafc';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    />
+                    <button 
+                      style={chatStyles.sendButton}
+                      onClick={handleSendReply}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 91, 181, 0.4)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 91, 181, 0.3)';
+                      }}
+                    >
+                      Send
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="22" y1="2" x2="11" y2="13" />
+                        <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                      </svg>
+                    </button>
+                  </div>
+                </>
+              ) : (
+                !isMobile && (
+                  <div style={chatStyles.noChatSelected}>
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                    <div>Select a conversation to begin</div>
+                  </div>
+                )
+              )}
+            </div>
             {!isMobile && activeChat && (<OrderCreationSidebar activeChat={activeChat} onAddOrder={handleAddOrder} />)}
+            
+            {/* Notification */}
+            {notification && (
+                <Notification
+                    message={notification.message}
+                    type={notification.type}
+                    onClose={() => setNotification(null)}
+                />
+            )}
         </div>
     );
 };
@@ -916,6 +1954,39 @@ const Dashboard2: React.FC = () => {
         const handleResize = () => setIsMobile(window.innerWidth < 1200);
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    // Add CSS animations for chat messages
+    useEffect(() => {
+        const styleSheet = document.createElement("style");
+        styleSheet.textContent = `
+            @keyframes messageSlide {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            @keyframes slideInRight {
+                from {
+                    opacity: 0;
+                    transform: translateX(100%);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+            }
+        `;
+        document.head.appendChild(styleSheet);
+        return () => {
+            if (document.head.contains(styleSheet)) {
+                document.head.removeChild(styleSheet);
+            }
+        };
     }, []);
 
     // Fetch current user info

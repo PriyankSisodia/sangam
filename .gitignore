@@ -3,3 +3,6 @@
 .env.development
 .env.test
 .env.production
+
+# Exclude markdown documentation files
+*.md

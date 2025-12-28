@@ -164,12 +164,12 @@ def create_test_catalog(db: Session, user_id: int):
     print("Creating test catalog items...")
     
     catalog_items = [
-        {"name": "Minimalist Wall Clock", "image_url": "https://placehold.co/600x400/EAEAEA/333333?text=Wall+Clock", "price": 85.00, "stock": 25, "sold": 10, "category": "Home Decor"},
-        {"name": "Ceramic Vase Set", "image_url": "https://placehold.co/600x400/D2B48C/333333?text=Vase+Set", "price": 120.50, "stock": 15, "sold": 5, "category": "Home Decor"},
-        {"name": "Abstract Canvas Art", "image_url": "https://placehold.co/600x400/A9A9A9/333333?text=Canvas+Art", "price": 310.75, "stock": 10, "sold": 3, "category": "Art"},
-        {"name": "Handwoven Rug", "image_url": "https://placehold.co/600x400/BC8F8F/333333?text=Rug", "price": 250.00, "stock": 8, "sold": 2, "category": "Textiles"},
-        {"name": "Sculptural Table Lamp", "image_url": "https://placehold.co/600x400/F5DEB3/333333?text=Table+Lamp", "price": 180.00, "stock": 20, "sold": 7, "category": "Furniture"},
-        {"name": "Oak Bookshelf", "image_url": "https://placehold.co/600x400/CD853F/333333?text=Bookshelf", "price": 450.00, "stock": 5, "sold": 1, "category": "Furniture"},
+        {"name": "Minimalist Wall Clock", "image_url": "https://images.unsplash.com/photo-1616046229478-9901c5536a45?w=600&h=600&fit=crop", "price": 85.00, "stock": 25, "sold": 10, "category": "Home Decor"},
+        {"name": "Ceramic Vase Set", "image_url": "https://images.unsplash.com/photo-1616046229478-9901c5536a45?w=600&h=600&fit=crop", "price": 120.50, "stock": 15, "sold": 5, "category": "Home Decor"},
+        {"name": "Abstract Canvas Art", "image_url": "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=600&h=600&fit=crop", "price": 310.75, "stock": 10, "sold": 3, "category": "Art"},
+        {"name": "Handwoven Rug", "image_url": "https://images.unsplash.com/photo-1586105251261-72a756497a11?w=600&h=600&fit=crop", "price": 250.00, "stock": 8, "sold": 2, "category": "Textiles"},
+        {"name": "Sculptural Table Lamp", "image_url": "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&h=600&fit=crop", "price": 180.00, "stock": 20, "sold": 7, "category": "Furniture"},
+        {"name": "Oak Bookshelf", "image_url": "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&h=600&fit=crop", "price": 450.00, "stock": 5, "sold": 1, "category": "Furniture"},
     ]
     
     items_created = []
