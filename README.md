@@ -216,7 +216,7 @@ Want to learn more? Have feedback?
 
 *Helping you grow, one order at a time*
 
-[⭐ Try Sangam Free](https://sangam-v1.vercel.app)
+[⭐ Try Sangam Free](https://sangam-v2.vercel.app)
 
 </div>
 
