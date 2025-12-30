@@ -24,7 +24,7 @@ No more switching between apps. No more missing messages. Everything you need to
 
 ---
 
-## ✨ Why Small Businesses Love Sangam
+## ✨ Why Small Businesses Need Sangam
 
 ### 📱 **One Place for All Messages**
 Stop juggling between Instagram DMs, WhatsApp, and Facebook Messenger. See all your customer conversations in one clean interface.
@@ -133,24 +133,24 @@ When a customer wants to buy:
 ## 🎨 What Makes Sangam Different?
 
 ### **Built for Small Businesses**
-We understand small businesses. No enterprise complexity. No unnecessary features. Just what you need.
+Designed specifically for small businesses. No enterprise complexity. No unnecessary features. Just what you need.
 
 ### **Beautiful Design**
-Modern, clean interface that's a joy to use. No cluttered screens or confusing menus.
+Modern, clean interface that's easy to use. No cluttered screens or confusing menus.
 
 ### **Saves Time**
 Everything in one place means less switching, less searching, more time for your business.
 
-### **Always Growing**
-We're constantly adding features based on what small businesses actually need.
+### **Built With You**
+We're building this with small businesses. Your feedback shapes every feature we add.
 
 ---
 
 ## 💰 Pricing
 
-**Currently in Beta - Free to use!**
+**Currently in Early Beta - Completely Free!**
 
-We're testing with small businesses. Sign up now and help us build the perfect tool for you.
+We're just getting started and looking for early users to help us build the perfect tool for small businesses. Sign up now and be part of our journey!
 
 ---
 
@@ -168,45 +168,36 @@ We're testing with small businesses. Sign up now and help us build the perfect t
 
 ## 💬 Support
 
-Have questions? Need help?
+Have questions? Need help? We're here for you!
 
-- 📧 Email us at support@sangam.com
-- 💬 Chat with us in the app
-- 📖 Check our help center
-
----
-
-## 🌟 Testimonials
-
-> *"Sangam has completely changed how I manage my business. Everything is in one place now!"*  
-> — Sarah, E-commerce Store Owner
-
-> *"Creating orders from chats is a game-changer. So much faster!"*  
-> — Mike, Small Business Owner
+- 📧 Reach out via GitHub issues
+- 💬 Feedback is always welcome
+- 🐛 Found a bug? Let us know!
 
 ---
 
-## 🤝 Join Our Beta
+---
 
-We're looking for small businesses to test Sangam and help us improve it.
+## 🤝 Join Us Early
+
+We're building Sangam for small businesses like yours. Join us in the early stages and help shape the product.
 
 **What you get:**
-- ✅ Free access during beta
-- ✅ Direct input on features
-- ✅ Priority support
-- ✅ Early access to new features
+- ✅ Completely free access
+- ✅ Your feedback directly shapes new features
+- ✅ Priority support as we grow
+- ✅ Be part of building something great
 
-[Sign up now →](https://sangam-v1.vercel.app)
+[Get Started →](https://sangam-v1.vercel.app)
 
 ---
 
 ## 📞 Get in Touch
 
-Want to learn more? Have feedback?
+Have questions? Want to give feedback? We'd love to hear from you!
 
-- **Website**: [sangam.com](https://sangam.com)
-- **Email**: hello@sangam.com
-- **Demo**: [Try it now](https://sangam-v1.vercel.app)
+- **Try it**: [Live Demo](https://sangam-v1.vercel.app)
+- **Feedback**: Open an issue on GitHub or reach out directly
 
 ---
 
