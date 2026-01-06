@@ -1,7 +1,7 @@
 // src/components/Dashboard2.tsx
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import OrdersDashboard from './OrdersDashboard';
 import CatalogDashboard from './CatalogDashboard';
 import type { Order } from '../data/orders';
@@ -98,8 +98,8 @@ const formatMessageTime = (dateString?: string): string => {
 // --- 3. STYLING OBJECTS ---
 // ===================================================================================
 const styles: { [key: string]: React.CSSProperties } = {
-    wrapper: { minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#333', width: '100vw', padding: '20px 10px', boxSizing: 'border-box', fontFamily: 'sans-serif', background: 'linear-gradient(175deg, #f4f7f9 0%, #e9edf2 100%)', backgroundImage: `linear-gradient(175deg, #f4f7f9 0%, #e9edf2 100%), url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><g fill-rule="evenodd"><g fill="%23d6dee5" fill-opacity="0.2"><path d="M0 38.59l2.83-2.83 1.41 1.41L1.41 40H0v-1.41zM0 1.4l2.83 2.83 1.41-1.41L1.41 0H0v1.41zM38.59 40l-2.83-2.83 1.41-1.41L40 38.59V40h-1.41zM40 1.41l-2.83 2.83-1.41-1.41L38.59 0H40v1.41zM20 18.6l2.83-2.83 1.41 1.41L21.41 20l2.83 2.83-1.41 1.41L20 21.41l-2.83 2.83-1.41-1.41L18.59 20l-2.83-2.83 1.41-1.41L20 18.59z"/></g></g></svg>')` },
-    header: { width: '100%', maxWidth: '1600px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', padding: '0 10px' },
+    wrapper: { minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#333', width: '100vw', padding: '20px 10px', boxSizing: 'border-box', fontFamily: 'sans-serif', background: 'linear-gradient(175deg, #f4f7f9 0%, #e9edf2 100%)', backgroundImage: `linear-gradient(175deg, #f4f7f9 0%, #e9edf2 100%), url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><g fill-rule="evenodd"><g fill="%23d6dee5" fill-opacity="0.2"><path d="M0 38.59l2.83-2.83 1.41 1.41L1.41 40H0v-1.41zM0 1.4l2.83 2.83 1.41-1.41L1.41 0H0v1.41zM38.59 40l-2.83-2.83 1.41-1.41L40 38.59V40h-1.41zM40 1.41l-2.83 2.83-1.41-1.41L38.59 0H40v1.41zM20 18.6l2.83-2.83 1.41 1.41L21.41 20l2.83 2.83-1.41 1.41L20 21.41l-2.83 2.83-1.41-1.41L18.59 20l-2.83-2.83 1.41-1.41L20 18.59z"/></g></g></svg>')`, position: 'relative' as const, zIndex: 1, pointerEvents: 'auto' as const },
+    header: { width: '100%', maxWidth: '1600px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', padding: '0 10px', position: 'relative' as const, zIndex: 10, pointerEvents: 'auto' as const },
     title: { fontSize: '1.8rem', color: '#005bb5', fontWeight: 'bold' },
     accountWrapper: { position: 'relative' },
     accountIcon: { cursor: 'pointer', color: '#555' },
@@ -107,11 +107,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     dropdownItem: { padding: '12px 18px', cursor: 'pointer', transition: 'background 0.2s', borderBottom: '1px solid #f0f0f0' },
     dropdownHeader: { padding: '12px 18px', borderBottom: '1px solid #e0e0e0' },
     userEmail: { fontWeight: 600, fontSize: '0.9rem' },
-    tabContainer: { width: '100%', maxWidth: '1600px', display: 'flex', justifyContent: 'flex-start', marginBottom: '20px', borderBottom: '1px solid #ddd' },
+    tabContainer: { width: '100%', maxWidth: '1600px', display: 'flex', justifyContent: 'flex-start', marginBottom: '20px', borderBottom: '1px solid #ddd', position: 'relative' as const, zIndex: 10, pointerEvents: 'auto' as const },
     tab: { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', fontSize: '1rem', cursor: 'pointer', background: 'none', border: 'none', color: '#666', outline: 'none', borderBottom: '3px solid transparent', transition: 'color 0.3s, border-bottom-color 0.3s' },
     activeTab: { color: '#005bb5', borderBottom: '3px solid #005bb5', fontWeight: 600 },
     unreadBadge: { background: '#007bff', color: 'white', fontSize: '0.75rem', fontWeight: 'bold', padding: '3px 7px', borderRadius: '8px', lineHeight: 1 },
-    content: { width: '100%', maxWidth: '1600px', minHeight: 'calc(100vh - 180px)', overflowY: 'auto' as const }
+    content: { width: '100%', maxWidth: '1600px', minHeight: 'calc(100vh - 180px)', overflowY: 'auto' as const, position: 'relative' as const, zIndex: 1, pointerEvents: 'auto' as const }
 };
 
 const chatStyles = {
@@ -1956,6 +1956,30 @@ const Dashboard2: React.FC = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    // Debug: Check for stuck overlays on mount
+    useEffect(() => {
+        // Remove any stuck modal backdrops
+        const stuckBackdrops = document.querySelectorAll('[style*="position: fixed"][style*="z-index"]');
+        stuckBackdrops.forEach((el: Element) => {
+            const htmlEl = el as HTMLElement;
+            const zIndex = window.getComputedStyle(htmlEl).zIndex;
+            // If it's a high z-index fixed element that might be blocking, check if it should be visible
+            if (parseInt(zIndex) > 1000 && htmlEl.style.display !== 'none') {
+                // Check if it's a backdrop (has rgba background or backdrop-filter)
+                const bg = window.getComputedStyle(htmlEl).backgroundColor;
+                const backdropFilter = window.getComputedStyle(htmlEl).backdropFilter;
+                if (bg.includes('rgba') || backdropFilter !== 'none') {
+                    console.warn('⚠️ Found potential stuck backdrop, removing:', htmlEl);
+                    htmlEl.style.display = 'none';
+                }
+            }
+        });
+        
+        // Ensure body and html are clickable
+        document.body.style.pointerEvents = 'auto';
+        document.documentElement.style.pointerEvents = 'auto';
+    }, []);
+
     // Add CSS animations for chat messages
     useEffect(() => {
         const styleSheet = document.createElement("style");
@@ -2067,6 +2091,14 @@ const Dashboard2: React.FC = () => {
         };
 
         fetchData();
+        
+        // Safety timeout: if loading is stuck for more than 10 seconds, force it to false
+        const timeoutId = setTimeout(() => {
+            setLoading(false);
+            console.warn('⚠️ Loading timeout - forcing loading to false');
+        }, 10000);
+        
+        return () => clearTimeout(timeoutId);
     }, []); // Empty dependency array = run once on mount
 
     const handleLogout = () => { localStorage.removeItem('token'); navigate('/login'); };
@@ -2074,7 +2106,15 @@ const Dashboard2: React.FC = () => {
     const renderContent = () => {
         if (loading) {
             return (
-                <div style={{ textAlign: 'center', marginTop: 50, fontSize: '1.2rem', color: '#666' }}>
+                <div style={{ 
+                    textAlign: 'center', 
+                    marginTop: 50, 
+                    fontSize: '1.2rem', 
+                    color: '#666',
+                    pointerEvents: 'auto',
+                    position: 'relative',
+                    zIndex: 1
+                }}>
                     <div>Loading...</div>
                     <div style={{ fontSize: '0.9rem', marginTop: '10px', color: '#999' }}>
                         Checking: Backend connection, Authentication, Data fetching...
@@ -2165,7 +2205,7 @@ const Dashboard2: React.FC = () => {
                                             console.log('Orders:', orders);
                                             console.log('Catalog:', catalogItems);
                                             // Test API call
-                                            fetch('http://127.0.0.1:8000/chats/', {
+                                            fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/chats/`, {
                                                 headers: {
                                                     'Authorization': `Bearer ${token}`
                                                 }
@@ -2213,7 +2253,7 @@ const Dashboard2: React.FC = () => {
     };
 
     return (
-        <div style={styles.wrapper}>
+        <div style={styles.wrapper} onClick={(e) => e.stopPropagation()}>
             <header style={styles.header}>
                 <h1 style={styles.title}>Sangam AI</h1>
                 <div style={styles.accountWrapper}>
@@ -2223,19 +2263,24 @@ const Dashboard2: React.FC = () => {
                             <div style={styles.dropdownHeader}>
                                 <div style={styles.userEmail}>{currentUserEmail || 'Loading...'}</div>
                             </div>
+                            <Link to="/settings/instagram" style={{ textDecoration: 'none', color: 'inherit' }}>
+                                <div style={styles.dropdownItem} onMouseOver={e => e.currentTarget.style.backgroundColor = '#f0f0f0'} onMouseOut={e => e.currentTarget.style.backgroundColor = 'white'}>
+                                    📱 Instagram Settings
+                                </div>
+                            </Link>
                             <div style={styles.dropdownItem} onClick={handleLogout} onMouseOver={e => e.currentTarget.style.backgroundColor = '#f0f0f0'} onMouseOut={e => e.currentTarget.style.backgroundColor = 'white'}>Logout</div>
                         </div>
                     )}
                 </div>
             </header>
 
-            <nav style={styles.tabContainer}>
-                <button style={{ ...styles.tab, ...(activeTab === 'chats' ? styles.activeTab : {}) }} onClick={() => setActiveTab('chats')}><span>Chats</span>{unreadChatsCount > 0 && <span style={styles.unreadBadge}>{unreadChatsCount}</span>}</button>
-                <button style={{ ...styles.tab, ...(activeTab === 'orders' ? styles.activeTab : {}) }} onClick={() => setActiveTab('orders')}>Orders</button>
-                <button style={{ ...styles.tab, ...(activeTab === 'graphs' ? styles.activeTab : {}) }} onClick={() => setActiveTab('graphs')}>Graphs</button>
-                <button style={{ ...styles.tab, ...(activeTab === 'social' ? styles.activeTab : {}) }} onClick={() => setActiveTab('social')}>Social</button>
-                <button style={{ ...styles.tab, ...(activeTab === 'catalog' ? styles.activeTab : {}) }} onClick={() => setActiveTab('catalog')}>Catalog</button>
-                <button style={{ ...styles.tab, ...(activeTab === 'finances' ? styles.activeTab : {}) }} onClick={() => setActiveTab('finances')}>Finances</button>
+            <nav style={{...styles.tabContainer, pointerEvents: 'auto' as const, zIndex: 10, position: 'relative' as const}}>
+                <button style={{ ...styles.tab, ...(activeTab === 'chats' ? styles.activeTab : {}), pointerEvents: 'auto' as const, zIndex: 11 }} onClick={() => setActiveTab('chats')}><span>Chats</span>{unreadChatsCount > 0 && <span style={styles.unreadBadge}>{unreadChatsCount}</span>}</button>
+                <button style={{ ...styles.tab, ...(activeTab === 'orders' ? styles.activeTab : {}), pointerEvents: 'auto' as const, zIndex: 11 }} onClick={() => setActiveTab('orders')}>Orders</button>
+                <button style={{ ...styles.tab, ...(activeTab === 'graphs' ? styles.activeTab : {}), pointerEvents: 'auto' as const, zIndex: 11 }} onClick={() => setActiveTab('graphs')}>Graphs</button>
+                <button style={{ ...styles.tab, ...(activeTab === 'social' ? styles.activeTab : {}), pointerEvents: 'auto' as const, zIndex: 11 }} onClick={() => setActiveTab('social')}>Social</button>
+                <button style={{ ...styles.tab, ...(activeTab === 'catalog' ? styles.activeTab : {}), pointerEvents: 'auto' as const, zIndex: 11 }} onClick={() => setActiveTab('catalog')}>Catalog</button>
+                <button style={{ ...styles.tab, ...(activeTab === 'finances' ? styles.activeTab : {}), pointerEvents: 'auto' as const, zIndex: 11 }} onClick={() => setActiveTab('finances')}>Finances</button>
             </nav>
 
             <main style={styles.content}>{renderContent()}</main>

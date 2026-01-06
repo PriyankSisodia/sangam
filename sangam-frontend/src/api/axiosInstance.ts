@@ -1,8 +1,16 @@
 import axios from "axios";
 
+// Use environment variable for API URL, fallback to localhost for development
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
 const axiosInstance = axios.create({
-  baseURL: "http://127.0.0.1:8000",
+  baseURL: API_BASE_URL,
 });
+
+// Log API URL for debugging (only in development)
+if (import.meta.env.DEV) {
+  console.log('🔧 API Base URL:', API_BASE_URL);
+}
 
 // Attach token automatically
 axiosInstance.interceptors.request.use((config) => {

@@ -158,3 +158,36 @@ class CatalogItem(Base):
     
     # Relationship: link back to the user who owns this catalog item
     user = relationship("User")
+
+
+class InstagramConnection(Base):
+    """
+    InstagramConnection model - stores Instagram account connections
+    
+    Each user can connect one Instagram Business account
+    Stores OAuth tokens and account information
+    """
+    __tablename__ = "instagram_connections"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True)  # One connection per user
+    
+    # Instagram account information
+    instagram_account_id = Column(String, nullable=False)  # Instagram Business Account ID
+    instagram_username = Column(String, nullable=True)  # Instagram username
+    instagram_account_name = Column(String, nullable=True)  # Display name
+    
+    # OAuth tokens
+    access_token = Column(Text, nullable=False)  # Long-lived access token
+    token_expires_at = Column(DateTime, nullable=True)  # When token expires
+    
+    # Connection status
+    is_active = Column(Boolean, default=True, nullable=False)
+    last_sync_at = Column(DateTime, nullable=True)  # Last time we synced messages
+    
+    # Timestamps
+    connected_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+    
+    # Relationship: link back to the user
+    user = relationship("User")

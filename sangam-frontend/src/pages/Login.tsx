@@ -2,7 +2,10 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+// Log API URL on component mount for debugging
+console.log('🔧 Login API URL:', API_BASE_URL);
 
 // Icon Components
 const EmailIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
@@ -98,15 +101,39 @@ const Login: React.FC = () => {
     setLoading(true);
 
     try {
+      console.log('🔐 Attempting login...', { username, apiUrl: API_BASE_URL });
+      
       const response = await axios.post(`${API_BASE_URL}/login`, {
         username: username,
         password: password,
       });
 
+      console.log('✅ Login response:', response.data);
+
+      if (!response.data.access_token) {
+        throw new Error('No access token received from server');
+      }
+
       localStorage.setItem("token", response.data.access_token);
-      navigate("/dashboard2");
+      console.log('💾 Token saved to localStorage');
+      
+      // Small delay to ensure token is saved
+      setTimeout(() => {
+        console.log('🚀 Navigating to dashboard...');
+        navigate("/dashboard2");
+      }, 100);
     } catch (err: any) {
-      console.error("Login error:", err);
+      console.error("❌ Login error:", err);
+      console.error("Error response:", err?.response?.data);
+      console.error("Error status:", err?.response?.status);
+      
+      // Check for network errors
+      if (!err.response) {
+        setErrorMsg(`Cannot connect to server. Please check if backend is running at ${API_BASE_URL}`);
+        setLoading(false);
+        return;
+      }
+      
       const detail = err?.response?.data?.detail;
       if (Array.isArray(detail)) {
         const messages = detail.map((d: any) => d.msg);
@@ -116,9 +143,8 @@ const Login: React.FC = () => {
       } else if (typeof detail === "string") {
         setErrorMsg(detail);
       } else {
-        setErrorMsg("Invalid email or password. Please try again.");
+        setErrorMsg(err?.response?.data?.message || "Invalid email or password. Please try again.");
       }
-    } finally {
       setLoading(false);
     }
   };

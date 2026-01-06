@@ -18,6 +18,7 @@ from auth.routes import router as auth_router
 from orders.routes import router as orders_router
 from chats.routes import router as chats_router
 from catalog.routes import router as catalog_router
+from instagram.routes import router as instagram_router
 
 # Create the FastAPI application
 app = FastAPI(
@@ -75,7 +76,8 @@ def root():
             "auth": "/docs#/auth",
             "orders": "/docs#/orders",
             "chats": "/docs#/chats",
-            "catalog": "/docs#/catalog"
+            "catalog": "/docs#/catalog",
+            "instagram": "/docs#/instagram"
         }
     }
 
@@ -86,5 +88,6 @@ app.include_router(auth_router)      # /signup, /login, /users/me
 app.include_router(orders_router)     # /orders/* (all order endpoints)
 app.include_router(chats_router)      # /chats/* (all chat endpoints)
 app.include_router(catalog_router)   # /catalog/* (all catalog endpoints)
+app.include_router(instagram_router)  # /instagram/* (Instagram integration endpoints)
 
 # Note: The /users/me endpoint is already in auth_router, so we don't need it here
